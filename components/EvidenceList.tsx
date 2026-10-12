@@ -1,5 +1,6 @@
 export type EvidenceRow = {
   value?: string;
+  badge?: string;
   showName: string;
   episodeTitle: string;
   episodeUrl: string;
@@ -16,7 +17,16 @@ export default function EvidenceList({ evidence }: { evidence: EvidenceRow[] }) 
     <ul className="mt-3 space-y-2.5 border-t border-[var(--border)] pt-3">
       {evidence.map((e, i) => (
         <li key={i} className="text-sm">
-          {e.value && <div className="text-xs font-semibold text-white/80">{e.value}</div>}
+          {e.value && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white/80">{e.value}</span>
+              {e.badge && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/10 text-[var(--text-dim)]">
+                  {e.badge}
+                </span>
+              )}
+            </div>
+          )}
           <a
             href={e.episodeUrl}
             target="_blank"

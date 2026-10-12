@@ -9,20 +9,40 @@ import {
   getEntityMixThisWeek,
   getEntityMixDetail,
   getSponsorMentionSplit,
+  getSponsorMentionDetail,
   getEpisodesPerShow,
   getStatCardCounts,
 } from "@/lib/stats/dashboard";
 import { getTopicPerformance, getTopTopics } from "@/lib/stats/topic-performance";
-import type { BriefPayload } from "@/lib/brief/build";
+import type { BriefPayload, GuestLead, FlaggedEntity, FlaggedSponsor } from "@/lib/brief/build";
+import type { EvidenceRow } from "@/components/EvidenceList";
 
 export const dynamic = "force-dynamic";
 
+function guestsToEvidence(leads: GuestLead[]): EvidenceRow[] {
+  return leads.flatMap((g) => {
+    const badge = g.urgent ? "Act fast" : g.overexposed ? "Overexposed" : undefined;
+    return g.evidence.map((e) => ({ value: g.value, badge, ...e }));
+  });
+}
+
+function topicsToEvidence(topics: FlaggedEntity[]): EvidenceRow[] {
+  return topics.flatMap((t) =>
+    t.evidence.map((e) => ({ value: t.value, badge: `${t.showCount} shows`, ...e }))
+  );
+}
+
+function sponsorsToEvidence(sponsors: FlaggedSponsor[], badge: string): EvidenceRow[] {
+  return sponsors.flatMap((s) => s.evidence.map((e) => ({ value: s.value, badge, ...e })));
+}
+
 export default async function HomePage() {
-  const [entityMix, entityMixDetail, sponsorSplit, perShow, statCounts, topicPerformance, topTopics] =
+  const [entityMix, entityMixDetail, sponsorSplit, sponsorMentionDetail, perShow, statCounts, topicPerformance, topTopics] =
     await Promise.all([
       getEntityMixThisWeek(),
       getEntityMixDetail(),
       getSponsorMentionSplit(),
+      getSponsorMentionDetail(),
       getEpisodesPerShow(),
       getStatCardCounts(),
       getTopicPerformance(),
@@ -31,6 +51,15 @@ export default async function HomePage() {
 
   const latestBrief = statCounts.latestBrief;
   const payload = latestBrief?.payload as BriefPayload | undefined;
+
+  const guestDetail = payload ? guestsToEvidence(payload.guestLeads) : [];
+  const topicDetail = payload ? topicsToEvidence(payload.trendingTopics) : [];
+  const sponsorDetail = payload
+    ? [
+        ...sponsorsToEvidence(payload.sponsorSignals.tier1, "Tier 1"),
+        ...sponsorsToEvidence(payload.sponsorSignals.tier2, "Tier 2"),
+      ]
+    : [];
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -51,6 +80,9 @@ export default async function HomePage() {
           gradient={["#a855f7", "#7c3aed"]}
           glowClass="glow-violet"
           icon={<GuestIcon />}
+          modalTitle="Guest Leads — trailing 6 months"
+          emptyText="No guests appeared on 2+ monitored shows in the last 6 months."
+          detail={guestDetail}
         />
         <StatCard
           label="Trending Topics"
@@ -59,6 +91,9 @@ export default async function HomePage() {
           gradient={["#22d3ee", "#3b82f6"]}
           glowClass="glow-cyan"
           icon={<TopicIcon />}
+          modalTitle="Trending Topics — trailing 6 months"
+          emptyText="No topics covered by 2+ shows in the last 6 months."
+          detail={topicDetail}
         />
         <StatCard
           label="Sponsor Signals"
@@ -67,6 +102,9 @@ export default async function HomePage() {
           gradient={["#ec4899", "#d946ef"]}
           glowClass="glow-magenta"
           icon={<SponsorIcon />}
+          modalTitle="Sponsor Signals — trailing 6 months"
+          emptyText="No qualifying sponsor signals in the last 6 months."
+          detail={sponsorDetail}
         />
       </div>
 
@@ -81,7 +119,7 @@ export default async function HomePage() {
         <div className="lg:col-span-2">
           <EpisodesPerShowBar data={perShow} />
         </div>
-        <SponsorSplitDonut adRead={sponsorSplit.adRead} mention={sponsorSplit.mention} />
+        <SponsorSplitDonut adRead={sponsorSplit.adRead} mention={sponsorSplit.mention} detail={sponsorMentionDetail} />
       </div>
 
       <div className="mb-10">

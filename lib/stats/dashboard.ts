@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { episodes, episodeEntities, shows, pipelineRuns, weeklyBriefs } from "../db/schema";
-import { desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 
 export type WeeklyEpisodeSeries = {
   weeks: string[]; // week start labels
@@ -125,6 +125,40 @@ export async function getSponsorMentionSplit() {
     else if (r.mentionType === "mention") mention = Number(r.count);
   }
   return { adRead, mention };
+}
+
+export async function getSponsorMentionDetail(): Promise<Record<"adRead" | "mention", EntityMixDetailRow[]>> {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      mentionType: episodeEntities.mentionType,
+      value: episodeEntities.value,
+      excerpt: episodeEntities.excerpt,
+      showName: shows.name,
+      episodeTitle: episodes.title,
+      episodeUrl: episodes.url,
+      publishedAt: episodes.publishedAt,
+    })
+    .from(episodeEntities)
+    .innerJoin(episodes, eq(episodeEntities.episodeId, episodes.id))
+    .innerJoin(shows, eq(episodes.showId, shows.id))
+    .where(and(eq(episodeEntities.type, "sponsor"), gte(episodes.publishedAt, thirtyDaysAgo)))
+    .orderBy(desc(episodes.publishedAt));
+
+  const detail: Record<"adRead" | "mention", EntityMixDetailRow[]> = { adRead: [], mention: [] };
+  for (const r of rows) {
+    const key = r.mentionType === "ad_read" ? "adRead" : r.mentionType === "mention" ? "mention" : null;
+    if (!key) continue;
+    detail[key].push({
+      value: r.value,
+      excerpt: r.excerpt,
+      showName: r.showName,
+      episodeTitle: r.episodeTitle,
+      episodeUrl: r.episodeUrl,
+      publishedAt: r.publishedAt.toISOString(),
+    });
+  }
+  return detail;
 }
 
 export async function getEpisodesPerShow() {
