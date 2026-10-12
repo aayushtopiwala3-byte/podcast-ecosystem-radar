@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { fmtDate } from "./EvidenceList";
+import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
 import type { GlobalProvenDraw } from "@/lib/stats/proven-draws";
 import type { SuggestedGuest } from "@/lib/brief/build";

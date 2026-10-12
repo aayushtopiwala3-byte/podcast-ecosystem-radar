@@ -1,7 +1,7 @@
 import type { RankedTopic } from "@/lib/stats/topic-performance";
 import { getProvenDraws } from "@/lib/stats/proven-draws";
 import { getCachedSuggestions } from "@/lib/ai-suggestions";
-import { fmtDate } from "./EvidenceList";
+import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
 import InterviewPrepComposer from "./InterviewPrepComposer";
 

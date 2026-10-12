@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { fmtDate } from "@/lib/format";
 
 export type EvidenceRow = {
   value?: string;
@@ -11,10 +12,6 @@ export type EvidenceRow = {
   publishedAt: string;
   excerpt: string | null;
 };
-
-export function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function EvidenceList({ evidence }: { evidence: EvidenceRow[] }) {
   return (

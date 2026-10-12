@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { BriefPayload, EvidenceItem } from "@/lib/brief/build";
-import EvidenceList, { fmtDate } from "./EvidenceList";
+import EvidenceList from "./EvidenceList";
+import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
 
 function ExpandableCard({
