@@ -36,19 +36,30 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
         .join("")
     : "<p>No topics covered by 2+ shows in the last 7 days.</p>";
 
-  const sponsorCrossHtml = payload.sponsorSignals.crossShow.length
-    ? payload.sponsorSignals.crossShow
+  const sponsorTier1Html = payload.sponsorSignals.tier1.length
+    ? payload.sponsorSignals.tier1
         .map(
           (s) =>
-            `<div style="margin-bottom:16px;"><strong style="color:#ec4899;">${s.value}</strong> — on ${s.showCount} shows (last 30 days), ${s.adReadCount} ad-read(s), ${s.mentionCount} mention(s)<ul>${evidenceHtml(
+            `<div style="margin-bottom:16px;"><strong style="color:#ec4899;">${s.value}</strong> — paid ad-reads on ${s.showCount} shows (last 6 months), ${s.adReadCount} ad-read(s), ${s.mentionCount} mention(s)<ul>${evidenceHtml(
               s.evidence
             )}</ul></div>`
         )
         .join("")
-    : "<p>No brands crossed 2+ shows in the last 30 days.</p>";
+    : "<p>No brands have paid ad-reads on 2+ shows in the last 6 months.</p>";
 
-  const sponsorWatchHtml = payload.sponsorSignals.watchlist.length
-    ? `<ul>${payload.sponsorSignals.watchlist
+  const sponsorTier2Html = payload.sponsorSignals.tier2.length
+    ? payload.sponsorSignals.tier2
+        .map(
+          (s) =>
+            `<div style="margin-bottom:16px;"><strong style="color:#ec4899;">${s.value}</strong> — organic mentions only, on ${s.showCount} show(s)<ul>${evidenceHtml(
+              s.evidence
+            )}</ul></div>`
+        )
+        .join("")
+    : "<p>No organic-only sponsor mentions in the last 6 months.</p>";
+
+  const sponsorSingleShowHtml = payload.sponsorSignals.singleShowAdReads.length
+    ? `<ul>${payload.sponsorSignals.singleShowAdReads
         .map(
           (w) =>
             `<li style="margin-bottom:6px;"><strong>${w.value}</strong> (ad-read) — <a href="${w.episodeUrl}" style="color:#3b82f6;">${w.episodeTitle}</a>, ${w.showName}, ${fmtDate(
@@ -70,10 +81,12 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
     ${topicsHtml}
 
     <h2 style="color:#d946ef; border-bottom:2px solid #ec4899; padding-bottom:6px;">Sponsor Signals</h2>
-    <h3>Cross-show sponsors</h3>
-    ${sponsorCrossHtml}
+    <h3>Tier 1 — paid ad-reads on 2+ shows</h3>
+    ${sponsorTier1Html}
+    <h3>Tier 2 — organic mentions only</h3>
+    ${sponsorTier2Html}
     <h3>Single-show ad-reads to watch</h3>
-    ${sponsorWatchHtml}
+    ${sponsorSingleShowHtml}
 
     <p style="margin-top:32px;"><a href="${dashboardUrl}" style="background:#7c3aed;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;">Open full dashboard →</a></p>
   </div>`;

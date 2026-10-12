@@ -9,6 +9,7 @@ import {
   jsonb,
   real,
   date,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const shows = pgTable("shows", {
@@ -35,6 +36,8 @@ export const episodes = pgTable("episodes", {
   sourceType: varchar("source_type", { length: 40 }).notNull(), // youtube_transcript | youtube_description_only | rss_description
   rawText: text("raw_text").notNull(),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  viewCount: integer("view_count"), // raw YouTube statistics.viewCount; null for RSS or failed fetch
+  viewRatio: real("view_ratio"), // viewCount / show's trailing-6-month average viewCount; null = no engagement signal
 });
 
 export const episodeEntities = pgTable("episode_entities", {
@@ -65,4 +68,30 @@ export const pipelineRuns = pgTable("pipeline_runs", {
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   status: varchar("status", { length: 20 }).notNull().default("running"), // success | partial | failed | running
   details: jsonb("details").notNull().default({}),
+});
+
+export const aiSuggestions = pgTable(
+  "ai_suggestions",
+  {
+    id: serial("id").primaryKey(),
+    kind: varchar("kind", { length: 20 }).notNull(), // guest | sponsor
+    topic: text("topic").notNull(),
+    suggestions: jsonb("suggestions").notNull(), // [{ name, reason, sourceUrl? }]
+    generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    kindTopicUnique: uniqueIndex("ai_suggestions_kind_topic_unique").on(table.kind, table.topic),
+  })
+);
+
+export const inviteDrafts = pgTable("invite_drafts", {
+  id: serial("id").primaryKey(),
+  guestValue: text("guest_value").notNull(),
+  topicValue: text("topic_value"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | sent
+  evidenceEpisodeId: integer("evidence_episode_id").references(() => episodes.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
 });

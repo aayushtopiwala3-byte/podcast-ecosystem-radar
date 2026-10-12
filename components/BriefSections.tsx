@@ -2,37 +2,8 @@
 
 import { useState } from "react";
 import type { BriefPayload, EvidenceItem } from "@/lib/brief/build";
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
-function EvidenceList({ evidence }: { evidence: EvidenceItem[] }) {
-  return (
-    <ul className="mt-3 space-y-2.5 border-t border-[var(--border)] pt-3">
-      {evidence.map((e, i) => (
-        <li key={i} className="text-sm">
-          <a
-            href={e.episodeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white hover:underline font-medium"
-          >
-            {e.episodeTitle}
-          </a>
-          <div className="text-xs text-[var(--text-dim)] mt-0.5">
-            {e.showName} · {fmtDate(e.publishedAt)}
-          </div>
-          {e.excerpt && (
-            <blockquote className="text-xs text-[var(--text-dim)] italic mt-1 pl-2 border-l-2 border-[var(--border)]">
-              "{e.excerpt}"
-            </blockquote>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
+import EvidenceList, { fmtDate } from "./EvidenceList";
+import InviteComposer from "./InviteComposer";
 
 function ExpandableCard({
   title,
@@ -40,12 +11,14 @@ function ExpandableCard({
   badgeColor,
   evidence,
   extra,
+  footer,
 }: {
   title: string;
   badge: string;
   badgeColor: string;
   evidence: EvidenceItem[];
   extra?: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -73,6 +46,7 @@ function ExpandableCard({
         </div>
       </button>
       {open && <EvidenceList evidence={evidence} />}
+      {footer}
     </div>
   );
 }
@@ -91,6 +65,21 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               badge={`${g.showCount} shows`}
               badgeColor="#a855f7"
               evidence={g.evidence}
+              extra={
+                <span className="flex gap-1 shrink-0">
+                  {g.urgent && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
+                      Act fast — 2+ shows this month
+                    </span>
+                  )}
+                  {g.overexposed && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">
+                      Overexposed — 4+ appearances this quarter
+                    </span>
+                  )}
+                </span>
+              }
+              footer={<InviteComposer guestValue={g.value} evidenceEpisodeId={g.evidence[0]?.episodeId} />}
             />
           ))}
         </div>
@@ -114,11 +103,13 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
 
       <section>
         <SectionHeader title="Sponsor Signals" subtitle="Brands active across shows, trailing 6 months" color="#ec4899" />
+
+        <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Tier 1 — paid ad-reads on 2+ shows</h4>
         <div className="space-y-3">
-          {payload.sponsorSignals.crossShow.length === 0 && (
-            <EmptyState text="No brand has sponsored 2+ shows in the last 6 months yet." />
+          {payload.sponsorSignals.tier1.length === 0 && (
+            <EmptyState text="No brand has a paid ad-read on 2+ shows in the last 6 months yet." />
           )}
-          {payload.sponsorSignals.crossShow.map((s) => (
+          {payload.sponsorSignals.tier1.map((s) => (
             <ExpandableCard
               key={s.value}
               title={s.value}
@@ -127,11 +118,9 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               evidence={s.evidence}
               extra={
                 <span className="flex gap-1 shrink-0">
-                  {s.adReadCount > 0 && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">
-                      {s.adReadCount} Ad read
-                    </span>
-                  )}
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400">
+                    {s.adReadCount} Ad read
+                  </span>
                   {s.mentionCount > 0 && (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300">
                       {s.mentionCount} Mention
@@ -143,11 +132,11 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
           ))}
         </div>
 
-        {payload.sponsorSignals.watchlist.length > 0 && (
+        {payload.sponsorSignals.singleShowAdReads.length > 0 && (
           <div className="mt-6">
-            <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Sponsor activity to watch (single-show ad-reads)</h4>
+            <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Single-show ad-reads (not yet Tier 1)</h4>
             <div className="space-y-2">
-              {payload.sponsorSignals.watchlist.map((w, i) => (
+              {payload.sponsorSignals.singleShowAdReads.map((w, i) => (
                 <div key={i} className="card p-3.5 flex items-center justify-between gap-3 fade-slide-in">
                   <div className="min-w-0">
                     <div className="font-medium text-white truncate">{w.value}</div>
@@ -163,6 +152,46 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400 shrink-0">
                     Ad read
                   </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Tier 2 — organic mentions only</h4>
+          <div className="space-y-3">
+            {payload.sponsorSignals.tier2.length === 0 && (
+              <EmptyState text="No organic-only sponsor mentions in the last 6 months yet." />
+            )}
+            {payload.sponsorSignals.tier2.map((s) => (
+              <ExpandableCard
+                key={s.value}
+                title={s.value}
+                badge={`${s.showCount} shows`}
+                badgeColor="#ec4899"
+                evidence={s.evidence}
+                extra={
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-300 shrink-0">
+                    {s.mentionCount} Mention
+                  </span>
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        {payload.sponsorSignals.tier3.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">
+              Tier 3 — AI suggestion, not sourced from monitored podcasts, unverified
+            </h4>
+            <div className="space-y-2">
+              {payload.sponsorSignals.tier3.map((s, i) => (
+                <div key={i} className="card p-3.5 fade-slide-in">
+                  <div className="font-medium text-white">{s.value}</div>
+                  <div className="text-xs text-[var(--text-dim)] mt-0.5">Relevant to: {s.topic}</div>
+                  <p className="text-xs text-[var(--text-dim)] mt-1">{s.reason}</p>
                 </div>
               ))}
             </div>

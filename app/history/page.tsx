@@ -35,7 +35,11 @@ export default async function HistoryPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <Badge color="#a855f7" count={payload.guestLeads?.length ?? 0} label="guests" />
                 <Badge color="#22d3ee" count={payload.trendingTopics?.length ?? 0} label="topics" />
-                <Badge color="#ec4899" count={payload.sponsorSignals?.crossShow?.length ?? 0} label="sponsors" />
+                <Badge
+                  color="#ec4899"
+                  count={(payload.sponsorSignals?.tier1?.length ?? 0) + (payload.sponsorSignals?.tier2?.length ?? 0)}
+                  label="sponsors"
+                />
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded-full ${
                     b.emailSent ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"

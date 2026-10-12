@@ -67,6 +67,48 @@ export async function getEntityMixThisWeek() {
   return map;
 }
 
+export type EntityMixDetailRow = {
+  value: string;
+  excerpt: string | null;
+  showName: string;
+  episodeTitle: string;
+  episodeUrl: string;
+  publishedAt: string;
+};
+
+export async function getEntityMixDetail(): Promise<Record<"guest" | "topic" | "sponsor", EntityMixDetailRow[]>> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      type: episodeEntities.type,
+      value: episodeEntities.value,
+      excerpt: episodeEntities.excerpt,
+      showName: shows.name,
+      episodeTitle: episodes.title,
+      episodeUrl: episodes.url,
+      publishedAt: episodes.publishedAt,
+    })
+    .from(episodeEntities)
+    .innerJoin(episodes, eq(episodeEntities.episodeId, episodes.id))
+    .innerJoin(shows, eq(episodes.showId, shows.id))
+    .where(gte(episodes.publishedAt, sevenDaysAgo))
+    .orderBy(desc(episodes.publishedAt));
+
+  const detail: Record<"guest" | "topic" | "sponsor", EntityMixDetailRow[]> = { guest: [], topic: [], sponsor: [] };
+  for (const r of rows) {
+    if (r.type !== "guest" && r.type !== "topic" && r.type !== "sponsor") continue;
+    detail[r.type].push({
+      value: r.value,
+      excerpt: r.excerpt,
+      showName: r.showName,
+      episodeTitle: r.episodeTitle,
+      episodeUrl: r.episodeUrl,
+      publishedAt: r.publishedAt.toISOString(),
+    });
+  }
+  return detail;
+}
+
 export async function getSponsorMentionSplit() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const rows = await db
@@ -130,11 +172,13 @@ export async function getStatCardCounts() {
 
   const guestCount = latestPayload?.guestLeads?.length ?? 0;
   const topicCount = latestPayload?.trendingTopics?.length ?? 0;
-  const sponsorCount = latestPayload?.sponsorSignals?.crossShow?.length ?? 0;
+  const sponsorCount =
+    (latestPayload?.sponsorSignals?.tier1?.length ?? 0) + (latestPayload?.sponsorSignals?.tier2?.length ?? 0);
 
   const prevGuestCount = prevPayload?.guestLeads?.length ?? 0;
   const prevTopicCount = prevPayload?.trendingTopics?.length ?? 0;
-  const prevSponsorCount = prevPayload?.sponsorSignals?.crossShow?.length ?? 0;
+  const prevSponsorCount =
+    (prevPayload?.sponsorSignals?.tier1?.length ?? 0) + (prevPayload?.sponsorSignals?.tier2?.length ?? 0);
 
   function pctChange(curr: number, prev: number) {
     if (prev === 0) return curr === 0 ? 0 : 100;

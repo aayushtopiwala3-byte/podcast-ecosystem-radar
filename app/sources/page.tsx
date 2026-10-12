@@ -1,4 +1,5 @@
-import { getAllShowsWithStatus, getLatestPipelineRun } from "@/lib/stats/dashboard";
+import { getAllShowsWithStatus, getLatestPipelineRun, getWeeklyEpisodeSeries } from "@/lib/stats/dashboard";
+import EpisodeTrendChart from "@/components/charts/EpisodeTrendChart";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,11 @@ const STATUS_CONFIG: Record<string, { color: string; dot: string; label: string 
 };
 
 export default async function SourcesPage() {
-  const [shows, latestRun] = await Promise.all([getAllShowsWithStatus(), getLatestPipelineRun()]);
+  const [shows, latestRun, series] = await Promise.all([
+    getAllShowsWithStatus(),
+    getLatestPipelineRun(),
+    getWeeklyEpisodeSeries(),
+  ]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -27,6 +32,10 @@ export default async function SourcesPage() {
             : "Pipeline has never run yet."}
         </p>
       </header>
+
+      <div className="mb-8">
+        <EpisodeTrendChart weeks={series.weeks} totals={series.totals} highlighted={series.highlighted} />
+      </div>
 
       <div className="space-y-3">
         {shows.map((show) => {

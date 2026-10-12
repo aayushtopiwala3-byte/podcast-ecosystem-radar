@@ -6,6 +6,8 @@ import { fetchRecentRssItems } from "./rss";
 import { extractEntities } from "../gemini/extract";
 import { normalize, normalizeGuestName } from "./normalize";
 import { mapLimit } from "./concurrency";
+import { fetchViewCounts } from "../youtube/stats";
+import { recomputeViewRatios } from "../scoring/virality";
 
 const EPISODE_CONCURRENCY = 4;
 const SHOW_CONCURRENCY = 10;
@@ -84,6 +86,7 @@ async function processShow(show: Show): Promise<ShowOutcome> {
       }
 
       const videos = await fetchRecentVideos(show.youtubeChannelId, since.toISOString());
+      const viewCounts = await fetchViewCounts(videos.map((v) => v.videoId));
 
       await mapLimit(videos, EPISODE_CONCURRENCY, async (video) => {
         const existing = await db
@@ -108,12 +111,15 @@ async function processShow(show: Show): Promise<ShowOutcome> {
             publishedAt: new Date(video.publishedAt),
             sourceType,
             rawText,
+            viewCount: viewCounts[video.videoId] ?? null,
           })
           .returning();
 
         outcome.newEpisodes++;
         await extractAndStore(episode.id, video.title, rawText);
       });
+
+      await recomputeViewRatios(show.id);
     } else if (show.platform === "rss") {
       if (!show.rssUrl) {
         outcome.status = "failed";

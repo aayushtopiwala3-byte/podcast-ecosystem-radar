@@ -1,28 +1,33 @@
 import StatCard from "@/components/StatCard";
-import EpisodeTrendChart from "@/components/charts/EpisodeTrendChart";
+import TopicPerformanceChart from "@/components/charts/TopicPerformanceChart";
 import EntityMixDonut from "@/components/charts/EntityMixDonut";
 import SponsorSplitDonut from "@/components/charts/SponsorSplitDonut";
 import EpisodesPerShowBar from "@/components/charts/EpisodesPerShowBar";
 import BriefSections from "@/components/BriefSections";
+import TopTopicsPanel from "@/components/TopTopicsPanel";
 import {
-  getWeeklyEpisodeSeries,
   getEntityMixThisWeek,
+  getEntityMixDetail,
   getSponsorMentionSplit,
   getEpisodesPerShow,
   getStatCardCounts,
 } from "@/lib/stats/dashboard";
+import { getTopicPerformance, getTopTopics } from "@/lib/stats/topic-performance";
 import type { BriefPayload } from "@/lib/brief/build";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [series, entityMix, sponsorSplit, perShow, statCounts] = await Promise.all([
-    getWeeklyEpisodeSeries(),
-    getEntityMixThisWeek(),
-    getSponsorMentionSplit(),
-    getEpisodesPerShow(),
-    getStatCardCounts(),
-  ]);
+  const [entityMix, entityMixDetail, sponsorSplit, perShow, statCounts, topicPerformance, topTopics] =
+    await Promise.all([
+      getEntityMixThisWeek(),
+      getEntityMixDetail(),
+      getSponsorMentionSplit(),
+      getEpisodesPerShow(),
+      getStatCardCounts(),
+      getTopicPerformance(),
+      getTopTopics(5),
+    ]);
 
   const latestBrief = statCounts.latestBrief;
   const payload = latestBrief?.payload as BriefPayload | undefined;
@@ -67,9 +72,9 @@ export default async function HomePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
         <div className="lg:col-span-2">
-          <EpisodeTrendChart weeks={series.weeks} totals={series.totals} highlighted={series.highlighted} />
+          <TopicPerformanceChart topics={topicPerformance} />
         </div>
-        <EntityMixDonut guest={entityMix.guest} topic={entityMix.topic} sponsor={entityMix.sponsor} />
+        <EntityMixDonut guest={entityMix.guest} topic={entityMix.topic} sponsor={entityMix.sponsor} detail={entityMixDetail} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
@@ -77,6 +82,10 @@ export default async function HomePage() {
           <EpisodesPerShowBar data={perShow} />
         </div>
         <SponsorSplitDonut adRead={sponsorSplit.adRead} mention={sponsorSplit.mention} />
+      </div>
+
+      <div className="mb-10">
+        <TopTopicsPanel topics={topTopics} />
       </div>
 
       {payload ? (
