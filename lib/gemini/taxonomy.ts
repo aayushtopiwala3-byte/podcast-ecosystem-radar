@@ -1,0 +1,25 @@
+export const TOPIC_TAXONOMY = [
+  "Startups",
+  "Venture Capital",
+  "Fintech",
+  "Personal Finance",
+  "Economy & Markets",
+  "AI",
+  "SaaS",
+  "D2C & E-commerce",
+  "Deep Tech",
+  "Crypto",
+  "Marketing & Growth",
+  "Healthcare",
+  "Education",
+  "Leadership & Management",
+  "Entrepreneurship",
+  "Media & Entertainment",
+  "Government Policy",
+  "Climate & Sustainability",
+  "Real Estate",
+  "Mental Health & Wellness",
+  "Lifestyle & Relationships",
+] as const;
+
+export type TopicTag = (typeof TOPIC_TAXONOMY)[number];

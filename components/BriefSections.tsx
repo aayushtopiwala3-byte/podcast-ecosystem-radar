@@ -81,9 +81,9 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
   return (
     <div className="space-y-10">
       <section>
-        <SectionHeader title="Guest Leads" subtitle="Appearing on 2+ shows this month — easiest to book right now" color="#a855f7" />
+        <SectionHeader title="Guest Leads" subtitle="Appearing on 2+ shows in the last 6 months — easiest to book right now" color="#a855f7" />
         <div className="space-y-3">
-          {payload.guestLeads.length === 0 && <EmptyState text="No guests spotted on multiple shows this month yet." />}
+          {payload.guestLeads.length === 0 && <EmptyState text="No guests spotted on multiple shows in the last 6 months yet." />}
           {payload.guestLeads.map((g) => (
             <ExpandableCard
               key={g.value}
@@ -97,9 +97,9 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
       </section>
 
       <section>
-        <SectionHeader title="Trending Topics" subtitle="Covered by 2+ shows in the last 7 days" color="#22d3ee" />
+        <SectionHeader title="Trending Topics" subtitle="Covered by 2+ shows in the last 6 months" color="#22d3ee" />
         <div className="space-y-3">
-          {payload.trendingTopics.length === 0 && <EmptyState text="No cross-show topics in the last 7 days yet." />}
+          {payload.trendingTopics.length === 0 && <EmptyState text="No cross-show topics in the last 6 months yet." />}
           {payload.trendingTopics.map((t) => (
             <ExpandableCard
               key={t.value}
@@ -113,10 +113,10 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
       </section>
 
       <section>
-        <SectionHeader title="Sponsor Signals" subtitle="Brands active across shows, trailing 30 days" color="#ec4899" />
+        <SectionHeader title="Sponsor Signals" subtitle="Brands active across shows, trailing 6 months" color="#ec4899" />
         <div className="space-y-3">
           {payload.sponsorSignals.crossShow.length === 0 && (
-            <EmptyState text="No brand has sponsored 2+ shows in the last 30 days yet." />
+            <EmptyState text="No brand has sponsored 2+ shows in the last 6 months yet." />
           )}
           {payload.sponsorSignals.crossShow.map((s) => (
             <ExpandableCard

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { TOPIC_TAXONOMY } from "./taxonomy";
 
 const MODEL_NAME = "gemini-flash-latest";
 
@@ -33,7 +34,7 @@ const responseSchema = {
       items: {
         type: SchemaType.OBJECT,
         properties: {
-          topic: { type: SchemaType.STRING },
+          topic: { type: SchemaType.STRING, format: "enum", enum: TOPIC_TAXONOMY as unknown as string[] },
           excerpt: { type: SchemaType.STRING },
           confidence: { type: SchemaType.NUMBER },
         },
@@ -61,7 +62,7 @@ const SYSTEM_PROMPT = `You are an information-extraction engine for a podcast in
 
 Extract ONLY what is explicitly and clearly stated in the text:
 1. guests: named individuals who are guests being interviewed on this episode (NOT the host, unless ambiguous). Use their full name as stated.
-2. topics: 2-6 short topic phrases (2-5 words each) that capture the substantive subjects discussed (e.g. "AI agents in enterprise", "D2C unit economics", "Series A fundraising"). Avoid generic filler like "podcast" or "interview".
+2. topics: 2-6 tags chosen ONLY from this fixed taxonomy: ${TOPIC_TAXONOMY.join(", ")}. For each substantive subject discussed, pick the closest matching canonical tag(s) from this list — never invent a new tag or output freeform text. If nothing in the taxonomy reasonably fits, omit it rather than forcing a bad match.
 3. sponsors: brand or product names that are mentioned as sponsors or advertisers. For each, classify mention_type:
    - "ad_read": the text clearly reads like a dedicated sponsored ad read — e.g. a promo code, phrase like "this episode is sponsored by", "use code X for Y% off", a dedicated ad segment distinct from organic conversation.
    - "mention": an organic or passing reference to a brand/product without clear sponsorship language.

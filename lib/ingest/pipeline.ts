@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { fetchRecentVideos, fetchTranscriptText } from "./youtube";
 import { fetchRecentRssItems } from "./rss";
 import { extractEntities } from "../gemini/extract";
-import { normalize } from "./normalize";
+import { normalize, normalizeGuestName } from "./normalize";
 import { mapLimit } from "./concurrency";
 
 const EPISODE_CONCURRENCY = 4;
@@ -161,7 +161,12 @@ async function processShow(show: Show): Promise<ShowOutcome> {
   return outcome;
 }
 
-async function extractAndStore(episodeId: number, title: string, rawText: string) {
+export async function extractAndStore(
+  episodeId: number,
+  title: string,
+  rawText: string,
+  options: { replaceExisting?: boolean } = {}
+) {
   try {
     const extraction = await extractEntities(title, rawText);
 
@@ -173,7 +178,7 @@ async function extractAndStore(episodeId: number, title: string, rawText: string
         episodeId,
         type: "guest",
         value: g.name.trim(),
-        normalizedValue: normalize(g.name),
+        normalizedValue: normalizeGuestName(g.name),
         mentionType: null,
         excerpt: g.excerpt ?? null,
         confidence: g.confidence,
@@ -204,6 +209,10 @@ async function extractAndStore(episodeId: number, title: string, rawText: string
         excerpt: s.excerpt ?? null,
         confidence: s.confidence,
       });
+    }
+
+    if (options.replaceExisting) {
+      await db.delete(episodeEntities).where(eq(episodeEntities.episodeId, episodeId));
     }
 
     if (rows.length > 0) {

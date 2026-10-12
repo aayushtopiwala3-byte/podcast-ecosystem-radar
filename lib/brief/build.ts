@@ -52,9 +52,7 @@ function startOfWeek(d: Date): Date {
   return date;
 }
 
-function startOfMonth(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
-}
+const SIX_MONTHS_MS = 183 * 24 * 60 * 60 * 1000;
 
 async function fetchEntityRows(type: "guest" | "topic" | "sponsor", since: Date) {
   return db
@@ -79,12 +77,10 @@ async function fetchEntityRows(type: "guest" | "topic" | "sponsor", since: Date)
 export async function buildWeeklyBrief(): Promise<BriefPayload> {
   const now = new Date();
   const weekStart = startOfWeek(now);
-  const monthStart = startOfMonth(now);
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getTime() - SIX_MONTHS_MS);
 
-  // --- Guests: current calendar month, distinct shows ---
-  const guestRows = await fetchEntityRows("guest", monthStart);
+  // --- Guests: trailing 6 months, distinct shows ---
+  const guestRows = await fetchEntityRows("guest", sixMonthsAgo);
   const guestGroups = new Map<string, { value: string; evidence: EvidenceItem[]; showIds: Set<number> }>();
   for (const row of guestRows) {
     const key = row.normalizedValue;
@@ -108,8 +104,8 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
     .map((g) => ({ value: g.value, showCount: g.showIds.size, evidence: g.evidence }))
     .sort((a, b) => b.showCount - a.showCount);
 
-  // --- Topics: trailing 7 days, distinct shows ---
-  const topicRows = await fetchEntityRows("topic", sevenDaysAgo);
+  // --- Topics: trailing 6 months, distinct shows ---
+  const topicRows = await fetchEntityRows("topic", sixMonthsAgo);
   const topicGroups = new Map<string, { value: string; evidence: EvidenceItem[]; showIds: Set<number> }>();
   for (const row of topicRows) {
     const key = row.normalizedValue;
@@ -133,8 +129,8 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
     .map((g) => ({ value: g.value, showCount: g.showIds.size, evidence: g.evidence }))
     .sort((a, b) => b.showCount - a.showCount);
 
-  // --- Sponsors: trailing 30 days ---
-  const sponsorRows = await fetchEntityRows("sponsor", thirtyDaysAgo);
+  // --- Sponsors: trailing 6 months ---
+  const sponsorRows = await fetchEntityRows("sponsor", sixMonthsAgo);
   const sponsorGroups = new Map<
     string,
     { value: string; evidence: EvidenceItem[]; showIds: Set<number>; adReadCount: number; mentionCount: number }
