@@ -2,6 +2,7 @@ import { db } from "../db";
 import { aiSuggestions, episodeEntities, episodes, shows, weeklyBriefs } from "../db/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { getTopTopics } from "../stats/topic-performance";
+import { getGlobalProvenDraws, type GlobalProvenDraw } from "../stats/proven-draws";
 
 export type EvidenceItem = {
   showId: number;
@@ -45,10 +46,25 @@ export type SuggestedSponsor = {
   topic: string;
 };
 
+export type SuggestedGuest = {
+  value: string;
+  reason: string;
+  sourceUrl?: string;
+  topic: string;
+};
+
 export type BriefPayload = {
   weekStartDate: string;
   generatedAt: string;
   guestLeads: GuestLead[];
+  guestSignals: {
+    provenDraws: GlobalProvenDraw[];
+    suggestedGuests: SuggestedGuest[];
+    // Honest reporting of the original repeat-across-shows check (item 1/2): this is
+    // guestLeads.length, surfaced explicitly so the "0 guests on 2+ shows" finding
+    // stays visible even though it's no longer the headline metric.
+    repeatAppearanceCount: number;
+  };
   trendingTopics: FlaggedEntity[];
   sponsorSignals: {
     tier1: FlaggedSponsor[];
@@ -136,6 +152,25 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       };
     })
     .sort((a, b) => b.showCount - a.showCount);
+
+  // Top-5 performing topics drive both the global proven-draws scope and the
+  // AI-suggested guest/sponsor pools — computed once, reused below.
+  const topTopics = await getTopTopics(5);
+  const topTopicTags = new Set(topTopics.map((t) => t.tag));
+
+  const provenDraws = await getGlobalProvenDraws(Array.from(topTopicTags), 6);
+  const guestSuggestionRows =
+    topTopics.length > 0 ? await db.select().from(aiSuggestions).where(eq(aiSuggestions.kind, "guest")) : [];
+  const suggestedGuests: SuggestedGuest[] = guestSuggestionRows
+    .filter((row) => topTopicTags.has(row.topic))
+    .flatMap((row) =>
+      (row.suggestions as { name: string; reason: string; sourceUrl?: string }[]).map((s) => ({
+        value: s.name,
+        reason: s.reason,
+        sourceUrl: s.sourceUrl,
+        topic: row.topic,
+      }))
+    );
 
   // --- Topics: trailing 6 months, distinct shows ---
   const topicRows = await fetchEntityRows("topic", sixMonthsAgo);
@@ -249,7 +284,6 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
     }))
     .sort((a, b) => b.showCount - a.showCount);
 
-  const topTopics = await getTopTopics(5);
   const tier3Rows =
     topTopics.length > 0
       ? await db
@@ -257,7 +291,6 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
           .from(aiSuggestions)
           .where(eq(aiSuggestions.kind, "sponsor"))
       : [];
-  const topTopicTags = new Set(topTopics.map((t) => t.tag));
   const tier3: SuggestedSponsor[] = tier3Rows
     .filter((row) => topTopicTags.has(row.topic))
     .flatMap((row) =>
@@ -273,6 +306,11 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
     weekStartDate: weekStart.toISOString().slice(0, 10),
     generatedAt: now.toISOString(),
     guestLeads,
+    guestSignals: {
+      provenDraws,
+      suggestedGuests,
+      repeatAppearanceCount: guestLeads.length,
+    },
     trendingTopics,
     sponsorSignals: {
       tier1,

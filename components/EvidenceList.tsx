@@ -1,3 +1,7 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 export type EvidenceRow = {
   value?: string;
   badge?: string;
@@ -14,9 +18,19 @@ export function fmtDate(iso: string) {
 
 export default function EvidenceList({ evidence }: { evidence: EvidenceRow[] }) {
   return (
-    <ul className="mt-3 space-y-2.5 border-t border-[var(--border)] pt-3">
+    <motion.ul
+      className="mt-3 space-y-2.5 border-t border-[var(--border)] pt-3"
+      initial="hidden"
+      animate="show"
+      variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+    >
       {evidence.map((e, i) => (
-        <li key={i} className="text-sm">
+        <motion.li
+          key={i}
+          className="text-sm"
+          variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+          transition={{ duration: 0.25 }}
+        >
           {e.value && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-white/80">{e.value}</span>
@@ -43,8 +57,8 @@ export default function EvidenceList({ evidence }: { evidence: EvidenceRow[] }) 
               "{e.excerpt}"
             </blockquote>
           )}
-        </li>
+        </motion.li>
       ))}
-    </ul>
+    </motion.ul>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { motion } from "framer-motion";
 import type { TopicPerformance } from "@/lib/stats/topic-performance";
 
 type Props = {
@@ -11,7 +12,12 @@ export default function TopicPerformanceChart({ topics }: Props) {
   const data = [...topics].sort((a, b) => b.avgViewRatio - a.avgViewRatio).slice(0, 10);
 
   return (
-    <div className="card p-6 fade-slide-in">
+    <motion.div
+      className="card p-6"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold text-white">Topic Performance</h3>
@@ -40,7 +46,7 @@ export default function TopicPerformanceChart({ topics }: Props) {
                 ];
               }}
             />
-            <Bar dataKey="avgViewRatio" radius={[6, 6, 0, 0]} animationDuration={900}>
+            <Bar dataKey="avgViewRatio" radius={[6, 6, 0, 0]} animationDuration={900} animationEasing="ease-out" isAnimationActive>
               {data.map((d) => (
                 <Cell key={d.tag} fill={d.avgViewRatio > 0 ? "#22d3ee" : "#3a3f5c"} />
               ))}
@@ -48,6 +54,6 @@ export default function TopicPerformanceChart({ topics }: Props) {
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </motion.div>
   );
 }

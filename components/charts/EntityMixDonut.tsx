@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { motion } from "framer-motion";
 import Modal from "../Modal";
 import EvidenceList, { type EvidenceRow } from "../EvidenceList";
 
@@ -18,6 +19,9 @@ const LABELS: Record<EntityType, string> = { guest: "Guests", topic: "Topics", s
 
 export default function EntityMixDonut({ guest, topic, sponsor, detail }: Props) {
   const [open, setOpen] = useState<EntityType | null>(null);
+  // Retains the last-opened type during the modal's exit animation, since `open`
+  // itself flips to null immediately on close (before the fade-out finishes).
+  const [displayType, setDisplayType] = useState<EntityType | null>(null);
   const total = guest + topic + sponsor;
   const data: { name: string; value: number; color: string; type: EntityType }[] = [
     { name: "Guests", value: guest, color: "#a855f7", type: "guest" },
@@ -25,8 +29,18 @@ export default function EntityMixDonut({ guest, topic, sponsor, detail }: Props)
     { name: "Sponsors", value: sponsor, color: "#ec4899", type: "sponsor" },
   ];
 
+  function handleOpen(type: EntityType) {
+    setDisplayType(type);
+    setOpen(type);
+  }
+
   return (
-    <div className="card p-6 fade-slide-in relative">
+    <motion.div
+      className="card p-6 relative"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <h3 className="font-semibold text-white mb-1">This Week's Mix</h3>
       <p className="text-xs text-[var(--text-dim)] mb-2">Extracted entities, trailing 7 days · click a segment for detail</p>
       <div className="relative">
@@ -43,7 +57,7 @@ export default function EntityMixDonut({ guest, topic, sponsor, detail }: Props)
               stroke="none"
             >
               {data.map((d) => (
-                <Cell key={d.name} fill={d.color} cursor="pointer" onClick={() => setOpen(d.type)} />
+                <Cell key={d.name} fill={d.color} cursor="pointer" onClick={() => handleOpen(d.type)} />
               ))}
             </Pie>
             <Tooltip
@@ -60,7 +74,7 @@ export default function EntityMixDonut({ guest, topic, sponsor, detail }: Props)
         {data.map((d) => (
           <button
             key={d.name}
-            onClick={() => setOpen(d.type)}
+            onClick={() => handleOpen(d.type)}
             className="flex items-center gap-1.5 text-xs text-[var(--text-dim)] hover:text-white"
           >
             <span className="w-2 h-2 rounded-full" style={{ background: d.color }} />
@@ -69,15 +83,15 @@ export default function EntityMixDonut({ guest, topic, sponsor, detail }: Props)
         ))}
       </div>
 
-      {open && (
-        <Modal title={`${LABELS[open]} — trailing 7 days`} onClose={() => setOpen(null)}>
-          {detail[open].length === 0 ? (
-            <p className="text-sm text-[var(--text-dim)]">No {LABELS[open].toLowerCase()} extracted this week.</p>
+      {displayType && (
+        <Modal open={open !== null} title={`${LABELS[displayType]} — trailing 7 days`} onClose={() => setOpen(null)}>
+          {detail[displayType].length === 0 ? (
+            <p className="text-sm text-[var(--text-dim)]">No {LABELS[displayType].toLowerCase()} extracted this week.</p>
           ) : (
-            <EvidenceList evidence={detail[open]} />
+            <EvidenceList evidence={detail[displayType]} />
           )}
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

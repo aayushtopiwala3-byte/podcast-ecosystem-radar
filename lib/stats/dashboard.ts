@@ -204,12 +204,17 @@ export async function getStatCardCounts() {
   const latestPayload = latest?.payload as any;
   const prevPayload = previous?.payload as any;
 
-  const guestCount = latestPayload?.guestLeads?.length ?? 0;
+  // Headline guest count is now proven draws (guests whose episode in a trending
+  // topic significantly outperformed that show's own baseline), not exact repeat
+  // appearances — the repeat-appearance check still runs and is surfaced honestly
+  // in the expanded view via guestSignals.repeatAppearanceCount. Older briefs that
+  // predate guestSignals fall back to 0.
+  const guestCount = latestPayload?.guestSignals?.provenDraws?.length ?? 0;
   const topicCount = latestPayload?.trendingTopics?.length ?? 0;
   const sponsorCount =
     (latestPayload?.sponsorSignals?.tier1?.length ?? 0) + (latestPayload?.sponsorSignals?.tier2?.length ?? 0);
 
-  const prevGuestCount = prevPayload?.guestLeads?.length ?? 0;
+  const prevGuestCount = prevPayload?.guestSignals?.provenDraws?.length ?? 0;
   const prevTopicCount = prevPayload?.trendingTopics?.length ?? 0;
   const prevSponsorCount =
     (prevPayload?.sponsorSignals?.tier1?.length ?? 0) + (prevPayload?.sponsorSignals?.tier2?.length ?? 0);

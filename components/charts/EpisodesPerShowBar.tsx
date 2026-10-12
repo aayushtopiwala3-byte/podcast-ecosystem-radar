@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { motion } from "framer-motion";
 
 type Props = {
   data: { showName: string; count: number }[];
@@ -13,7 +14,12 @@ export default function EpisodesPerShowBar({ data }: Props) {
   }));
 
   return (
-    <div className="card p-6 fade-slide-in">
+    <motion.div
+      className="card p-6"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <h3 className="font-semibold text-white mb-1">Episodes per Show</h3>
       <p className="text-xs text-[var(--text-dim)] mb-4">All-time ingested episodes</p>
       <ResponsiveContainer width="100%" height={280}>
@@ -32,13 +38,13 @@ export default function EpisodesPerShowBar({ data }: Props) {
             contentStyle={{ background: "#171c33", border: "1px solid #22263f", borderRadius: 12, color: "#e8eaf5" }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.showName ?? ""}
           />
-          <Bar dataKey="count" radius={[8, 8, 0, 0]} animationDuration={900}>
+          <Bar dataKey="count" radius={[8, 8, 0, 0]} animationDuration={900} animationEasing="ease-out" isAnimationActive>
             {shortened.map((_, i) => (
               <Cell key={i} fill="url(#barGradient)" />
             ))}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 }

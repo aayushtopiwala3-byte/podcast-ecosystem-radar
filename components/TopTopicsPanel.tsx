@@ -3,6 +3,7 @@ import { getProvenDraws } from "@/lib/stats/proven-draws";
 import { getCachedSuggestions } from "@/lib/ai-suggestions";
 import { fmtDate } from "./EvidenceList";
 import InviteComposer from "./InviteComposer";
+import InterviewPrepComposer from "./InterviewPrepComposer";
 
 export default async function TopTopicsPanel({ topics }: { topics: RankedTopic[] }) {
   if (topics.length === 0) return null;
@@ -64,6 +65,12 @@ export default async function TopTopicsPanel({ topics }: { topics: RankedTopic[]
                             "{d.excerpt}"
                           </blockquote>
                         )}
+                        <InterviewPrepComposer
+                          topicValue={topic.tag}
+                          guestValue={d.guestName}
+                          guestSource="proven"
+                          evidenceEpisodeId={d.episodeId}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -94,6 +101,12 @@ export default async function TopTopicsPanel({ topics }: { topics: RankedTopic[]
                           </a>
                         )}
                         <InviteComposer guestValue={s.name} topicValue={topic.tag} />
+                        <InterviewPrepComposer
+                          topicValue={topic.tag}
+                          guestValue={s.name}
+                          guestSource="suggested"
+                          suggestionReason={s.reason}
+                        />
                       </li>
                     ))}
                   </ul>

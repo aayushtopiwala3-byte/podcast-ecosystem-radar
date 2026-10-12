@@ -95,3 +95,14 @@ export const inviteDrafts = pgTable("invite_drafts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
 });
+
+export const interviewPrepDrafts = pgTable("interview_prep_drafts", {
+  id: serial("id").primaryKey(),
+  topicValue: text("topic_value").notNull(),
+  guestValue: text("guest_value").notNull(),
+  guestSource: varchar("guest_source", { length: 20 }).notNull(), // proven | suggested
+  questions: jsonb("questions").notNull(), // string[]
+  script: text("script").notNull(),
+  evidenceEpisodeId: integer("evidence_episode_id").references(() => episodes.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

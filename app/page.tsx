@@ -5,6 +5,7 @@ import SponsorSplitDonut from "@/components/charts/SponsorSplitDonut";
 import EpisodesPerShowBar from "@/components/charts/EpisodesPerShowBar";
 import BriefSections from "@/components/BriefSections";
 import TopTopicsPanel from "@/components/TopTopicsPanel";
+import GuestLeadsDetail from "@/components/GuestLeadsDetail";
 import {
   getEntityMixThisWeek,
   getEntityMixDetail,
@@ -14,17 +15,10 @@ import {
   getStatCardCounts,
 } from "@/lib/stats/dashboard";
 import { getTopicPerformance, getTopTopics } from "@/lib/stats/topic-performance";
-import type { BriefPayload, GuestLead, FlaggedEntity, FlaggedSponsor } from "@/lib/brief/build";
+import type { BriefPayload, FlaggedEntity, FlaggedSponsor } from "@/lib/brief/build";
 import type { EvidenceRow } from "@/components/EvidenceList";
 
 export const dynamic = "force-dynamic";
-
-function guestsToEvidence(leads: GuestLead[]): EvidenceRow[] {
-  return leads.flatMap((g) => {
-    const badge = g.urgent ? "Act fast" : g.overexposed ? "Overexposed" : undefined;
-    return g.evidence.map((e) => ({ value: g.value, badge, ...e }));
-  });
-}
 
 function topicsToEvidence(topics: FlaggedEntity[]): EvidenceRow[] {
   return topics.flatMap((t) =>
@@ -52,7 +46,13 @@ export default async function HomePage() {
   const latestBrief = statCounts.latestBrief;
   const payload = latestBrief?.payload as BriefPayload | undefined;
 
-  const guestDetail = payload ? guestsToEvidence(payload.guestLeads) : [];
+  const guestModalBody = (
+    <GuestLeadsDetail
+      provenDraws={payload?.guestSignals?.provenDraws ?? []}
+      suggestedGuests={payload?.guestSignals?.suggestedGuests ?? []}
+      repeatAppearanceCount={payload?.guestSignals?.repeatAppearanceCount ?? 0}
+    />
+  );
   const topicDetail = payload ? topicsToEvidence(payload.trendingTopics) : [];
   const sponsorDetail = payload
     ? [
@@ -80,9 +80,9 @@ export default async function HomePage() {
           gradient={["#a855f7", "#7c3aed"]}
           glowClass="glow-violet"
           icon={<GuestIcon />}
-          modalTitle="Guest Leads — trailing 6 months"
-          emptyText="No guests appeared on 2+ monitored shows in the last 6 months."
-          detail={guestDetail}
+          modalTitle="Guest Leads — proven draws & suggestions, trailing 6 months"
+          emptyText="No proven draws or suggestions yet."
+          modalBody={guestModalBody}
         />
         <StatCard
           label="Trending Topics"

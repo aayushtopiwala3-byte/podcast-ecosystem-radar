@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { motion } from "framer-motion";
 import Modal from "../Modal";
 import EvidenceList, { type EvidenceRow } from "../EvidenceList";
 
@@ -17,14 +18,27 @@ const LABELS: Record<MentionType, string> = { adRead: "Ad read", mention: "Menti
 
 export default function SponsorSplitDonut({ adRead, mention, detail }: Props) {
   const [open, setOpen] = useState<MentionType | null>(null);
+  // Retains the last-opened type during the modal's exit animation, since `open`
+  // itself flips to null immediately on close (before the fade-out finishes).
+  const [displayType, setDisplayType] = useState<MentionType | null>(null);
   const total = adRead + mention;
   const data: { name: string; value: number; color: string; type: MentionType }[] = [
     { name: "Ad read", value: adRead, color: "#ec4899", type: "adRead" },
     { name: "Mention", value: mention, color: "#d946ef", type: "mention" },
   ];
 
+  function handleOpen(type: MentionType) {
+    setDisplayType(type);
+    setOpen(type);
+  }
+
   return (
-    <div className="card p-6 fade-slide-in relative">
+    <motion.div
+      className="card p-6 relative"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <h3 className="font-semibold text-white mb-1">Sponsor Activity</h3>
       <p className="text-xs text-[var(--text-dim)] mb-2">Ad-read vs. mention, trailing 30 days · click a segment for detail</p>
       <div className="relative">
@@ -41,7 +55,7 @@ export default function SponsorSplitDonut({ adRead, mention, detail }: Props) {
               stroke="none"
             >
               {data.map((d) => (
-                <Cell key={d.name} fill={d.color} cursor="pointer" onClick={() => setOpen(d.type)} />
+                <Cell key={d.name} fill={d.color} cursor="pointer" onClick={() => handleOpen(d.type)} />
               ))}
             </Pie>
             <Tooltip
@@ -58,7 +72,7 @@ export default function SponsorSplitDonut({ adRead, mention, detail }: Props) {
         {data.map((d) => (
           <button
             key={d.name}
-            onClick={() => setOpen(d.type)}
+            onClick={() => handleOpen(d.type)}
             className="flex items-center gap-1.5 text-xs text-[var(--text-dim)] hover:text-white"
           >
             <span className="w-2 h-2 rounded-full" style={{ background: d.color }} />
@@ -67,15 +81,15 @@ export default function SponsorSplitDonut({ adRead, mention, detail }: Props) {
         ))}
       </div>
 
-      {open && (
-        <Modal title={`${LABELS[open]} — trailing 30 days`} onClose={() => setOpen(null)}>
-          {detail[open].length === 0 ? (
-            <p className="text-sm text-[var(--text-dim)]">No {LABELS[open].toLowerCase()} sponsors in this window.</p>
+      {displayType && (
+        <Modal open={open !== null} title={`${LABELS[displayType]} — trailing 30 days`} onClose={() => setOpen(null)}>
+          {detail[displayType].length === 0 ? (
+            <p className="text-sm text-[var(--text-dim)]">No {LABELS[displayType].toLowerCase()} sponsors in this window.</p>
           ) : (
-            <EvidenceList evidence={detail[open]} />
+            <EvidenceList evidence={detail[displayType]} />
           )}
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

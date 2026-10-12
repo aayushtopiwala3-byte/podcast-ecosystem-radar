@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, animate } from "framer-motion";
 import Modal from "./Modal";
 import EvidenceList, { type EvidenceRow } from "./EvidenceList";
 
@@ -13,7 +14,12 @@ type Props = {
   icon: React.ReactNode;
   modalTitle: string;
   emptyText: string;
-  detail: EvidenceRow[];
+  detail?: EvidenceRow[];
+  // Pre-rendered modal content (built server-side) for cards whose drill-down
+  // needs more than a single flat evidence list — e.g. New Guest Leads, which
+  // shows proven draws and AI-suggested guests as two separately labeled lists.
+  // Takes precedence over detail/emptyText when provided.
+  modalBody?: React.ReactNode;
 };
 
 export default function StatCard({
@@ -25,7 +31,8 @@ export default function StatCard({
   icon,
   modalTitle,
   emptyText,
-  detail,
+  detail = [],
+  modalBody,
 }: Props) {
   const [display, setDisplay] = useState(0);
   const [open, setOpen] = useState(false);
@@ -34,21 +41,23 @@ export default function StatCard({
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const duration = 900;
-    const start = performance.now();
-    function tick(now: number) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(eased * value));
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
+    const controls = animate(0, value, {
+      duration: 0.9,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return () => controls.stop();
   }, [value]);
 
   const positive = change >= 0;
 
   return (
-    <div className={`card fade-slide-in relative overflow-hidden p-6 ${glowClass}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className={`card relative overflow-hidden p-6 ${glowClass}`}
+    >
       <div
         role="button"
         tabIndex={0}
@@ -88,15 +97,15 @@ export default function StatCard({
         <div className="text-xs text-[var(--text-dim)]/70 mt-2">Click to view details →</div>
       </div>
 
-      {open && (
-        <Modal title={modalTitle} onClose={() => setOpen(false)}>
-          {detail.length === 0 ? (
-            <p className="text-sm text-[var(--text-dim)]">{emptyText}</p>
-          ) : (
-            <EvidenceList evidence={detail} />
-          )}
-        </Modal>
-      )}
-    </div>
+      <Modal open={open} title={modalTitle} onClose={() => setOpen(false)}>
+        {modalBody ? (
+          modalBody
+        ) : detail.length === 0 ? (
+          <p className="text-sm text-[var(--text-dim)]">{emptyText}</p>
+        ) : (
+          <EvidenceList evidence={detail} />
+        )}
+      </Modal>
+    </motion.div>
   );
 }
