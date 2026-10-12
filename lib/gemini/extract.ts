@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { chatCompletion } from "../openrouter/client";
 import { TOPIC_TAXONOMY } from "./taxonomy";
-
-const MODEL_NAME = "gemini-flash-latest";
 
 export type ExtractionResult = {
   guests: { name: string; excerpt: string; confidence: number }[];
@@ -15,47 +13,51 @@ export type ExtractionResult = {
 };
 
 const responseSchema = {
-  type: SchemaType.OBJECT,
+  type: "object",
   properties: {
     guests: {
-      type: SchemaType.ARRAY,
+      type: "array",
       items: {
-        type: SchemaType.OBJECT,
+        type: "object",
         properties: {
-          name: { type: SchemaType.STRING },
-          excerpt: { type: SchemaType.STRING },
-          confidence: { type: SchemaType.NUMBER },
+          name: { type: "string" },
+          excerpt: { type: "string" },
+          confidence: { type: "number" },
         },
         required: ["name", "excerpt", "confidence"],
+        additionalProperties: false,
       },
     },
     topics: {
-      type: SchemaType.ARRAY,
+      type: "array",
       items: {
-        type: SchemaType.OBJECT,
+        type: "object",
         properties: {
-          topic: { type: SchemaType.STRING, format: "enum", enum: TOPIC_TAXONOMY as unknown as string[] },
-          excerpt: { type: SchemaType.STRING },
-          confidence: { type: SchemaType.NUMBER },
+          topic: { type: "string", enum: TOPIC_TAXONOMY as unknown as string[] },
+          excerpt: { type: "string" },
+          confidence: { type: "number" },
         },
         required: ["topic", "excerpt", "confidence"],
+        additionalProperties: false,
       },
     },
     sponsors: {
-      type: SchemaType.ARRAY,
+      type: "array",
       items: {
-        type: SchemaType.OBJECT,
+        type: "object",
         properties: {
-          brand: { type: SchemaType.STRING },
-          mention_type: { type: SchemaType.STRING, format: "enum", enum: ["ad_read", "mention"] },
-          excerpt: { type: SchemaType.STRING },
-          confidence: { type: SchemaType.NUMBER },
+          brand: { type: "string" },
+          mention_type: { type: "string", enum: ["ad_read", "mention"] },
+          excerpt: { type: "string" },
+          confidence: { type: "number" },
         },
         required: ["brand", "mention_type", "excerpt", "confidence"],
+        additionalProperties: false,
       },
     },
   },
   required: ["guests", "topics", "sponsors"],
+  additionalProperties: false,
 };
 
 const SYSTEM_PROMPT = `You are an information-extraction engine for a podcast intelligence tool. You will be given the title and transcript (or description, if no transcript was available) of a single podcast episode.
@@ -75,31 +77,16 @@ Rules:
 - If the input text is too short or uninformative (e.g. just a title with no real content), return empty arrays.
 - Output strictly valid JSON matching the provided schema. No markdown, no commentary.`;
 
-export async function extractEntities(
-  episodeTitle: string,
-  rawText: string
-): Promise<ExtractionResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: MODEL_NAME,
-    systemInstruction: SYSTEM_PROMPT,
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: responseSchema as any,
-      temperature: 0.2,
-    },
-  });
-
+export async function extractEntities(episodeTitle: string, rawText: string): Promise<ExtractionResult> {
   // Gemini Flash has a large context window but we cap input defensively to control cost/latency.
   const truncated = rawText.length > 18000 ? rawText.slice(0, 18000) : rawText;
-
   const prompt = `Episode title: ${episodeTitle}\n\nEpisode text:\n${truncated}`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
+  const text = await chatCompletion(prompt, {
+    systemPrompt: SYSTEM_PROMPT,
+    temperature: 0.2,
+    jsonSchema: { name: "episode_extraction", schema: responseSchema },
+  });
 
   try {
     const parsed = JSON.parse(text) as ExtractionResult;
@@ -109,6 +96,6 @@ export async function extractEntities(
       sponsors: parsed.sponsors ?? [],
     };
   } catch (e) {
-    throw new Error(`Gemini returned invalid JSON: ${text.slice(0, 500)}`);
+    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON: ${text.slice(0, 500)}`);
   }
 }

@@ -5,90 +5,45 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-function evidenceHtml(ev: { showName: string; episodeTitle: string; episodeUrl: string; publishedAt: string; excerpt: string | null }[]) {
-  return ev
-    .map(
-      (e) => `<li style="margin-bottom:6px;"><a href="${e.episodeUrl}" style="color:#3b82f6;">${e.episodeTitle}</a> — ${e.showName}, ${fmtDate(
-        e.publishedAt
-      )}${e.excerpt ? `<br/><em style="color:#64748b;">"${e.excerpt}"</em>` : ""}</li>`
-    )
-    .join("");
+function summaryList(items: string[], emptyText: string) {
+  if (items.length === 0) return `<p style="color:#64748b;">${emptyText}</p>`;
+  return `<ul style="padding-left:18px;">${items.map((i) => `<li style="margin-bottom:4px;">${i}</li>`).join("")}</ul>`;
 }
 
 export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string): string {
-  const guestsHtml = payload.guestLeads.length
-    ? payload.guestLeads
-        .map(
-          (g) => `<div style="margin-bottom:16px;"><strong style="color:#a855f7;">${g.value}</strong> — on ${g.showCount} shows this month<ul>${evidenceHtml(
-            g.evidence
-          )}</ul></div>`
-        )
-        .join("")
-    : "<p>No guests appeared on 2+ monitored shows this month.</p>";
+  const guestItems = payload.guestLeads.map(
+    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.urgent ? " · act fast" : ""}${g.overexposed ? " · overexposed" : ""}`
+  );
 
-  const topicsHtml = payload.trendingTopics.length
-    ? payload.trendingTopics
-        .map(
-          (t) => `<div style="margin-bottom:16px;"><strong style="color:#22d3ee;">${t.value}</strong> — on ${t.showCount} shows this week<ul>${evidenceHtml(
-            t.evidence
-          )}</ul></div>`
-        )
-        .join("")
-    : "<p>No topics covered by 2+ shows in the last 7 days.</p>";
+  const topicItems = payload.trendingTopics.map(
+    (t) => `<strong style="color:#22d3ee;">${t.value}</strong> — ${t.showCount} shows`
+  );
 
-  const sponsorTier1Html = payload.sponsorSignals.tier1.length
-    ? payload.sponsorSignals.tier1
-        .map(
-          (s) =>
-            `<div style="margin-bottom:16px;"><strong style="color:#ec4899;">${s.value}</strong> — paid ad-reads on ${s.showCount} shows (last 6 months), ${s.adReadCount} ad-read(s), ${s.mentionCount} mention(s)<ul>${evidenceHtml(
-              s.evidence
-            )}</ul></div>`
-        )
-        .join("")
-    : "<p>No brands have paid ad-reads on 2+ shows in the last 6 months.</p>";
-
-  const sponsorTier2Html = payload.sponsorSignals.tier2.length
-    ? payload.sponsorSignals.tier2
-        .map(
-          (s) =>
-            `<div style="margin-bottom:16px;"><strong style="color:#ec4899;">${s.value}</strong> — organic mentions only, on ${s.showCount} show(s)<ul>${evidenceHtml(
-              s.evidence
-            )}</ul></div>`
-        )
-        .join("")
-    : "<p>No organic-only sponsor mentions in the last 6 months.</p>";
-
-  const sponsorSingleShowHtml = payload.sponsorSignals.singleShowAdReads.length
-    ? `<ul>${payload.sponsorSignals.singleShowAdReads
-        .map(
-          (w) =>
-            `<li style="margin-bottom:6px;"><strong>${w.value}</strong> (ad-read) — <a href="${w.episodeUrl}" style="color:#3b82f6;">${w.episodeTitle}</a>, ${w.showName}, ${fmtDate(
-              w.publishedAt
-            )}</li>`
-        )
-        .join("")}</ul>`
-    : "<p>No single-show ad-reads to flag.</p>";
+  const sponsorCount = payload.sponsorSignals.tier1.length + payload.sponsorSignals.tier2.length;
+  const sponsorItems = [
+    ...payload.sponsorSignals.tier1.map((s) => `<strong style="color:#ec4899;">${s.value}</strong> — Tier 1, ${s.showCount} shows`),
+    ...payload.sponsorSignals.tier2.map((s) => `<strong style="color:#ec4899;">${s.value}</strong> — Tier 2, organic`),
+  ];
 
   return `
   <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width:640px; margin:0 auto; color:#0f172a;">
     <h1 style="font-size:22px;">Your Monday Podcast Radar — ${fmtDate(payload.generatedAt)}</h1>
     <p style="color:#64748b;">Week of ${payload.weekStartDate}</p>
 
-    <h2 style="color:#7c3aed; border-bottom:2px solid #a855f7; padding-bottom:6px;">Guest Leads</h2>
-    ${guestsHtml}
+    <h2 style="color:#7c3aed; border-bottom:2px solid #a855f7; padding-bottom:6px;">Guest Leads (${payload.guestLeads.length})</h2>
+    ${summaryList(guestItems, "No guests appeared on 2+ monitored shows in the last 6 months.")}
 
-    <h2 style="color:#3b82f6; border-bottom:2px solid #22d3ee; padding-bottom:6px;">Trending Topics</h2>
-    ${topicsHtml}
+    <h2 style="color:#3b82f6; border-bottom:2px solid #22d3ee; padding-bottom:6px;">Trending Topics (${payload.trendingTopics.length})</h2>
+    ${summaryList(topicItems, "No topics covered by 2+ shows in the last 6 months.")}
 
-    <h2 style="color:#d946ef; border-bottom:2px solid #ec4899; padding-bottom:6px;">Sponsor Signals</h2>
-    <h3>Tier 1 — paid ad-reads on 2+ shows</h3>
-    ${sponsorTier1Html}
-    <h3>Tier 2 — organic mentions only</h3>
-    ${sponsorTier2Html}
-    <h3>Single-show ad-reads to watch</h3>
-    ${sponsorSingleShowHtml}
+    <h2 style="color:#d946ef; border-bottom:2px solid #ec4899; padding-bottom:6px;">Sponsor Signals (${sponsorCount})</h2>
+    ${summaryList(sponsorItems, "No qualifying sponsor signals in the last 6 months.")}
 
-    <p style="margin-top:32px;"><a href="${dashboardUrl}" style="background:#7c3aed;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;">Open full dashboard →</a></p>
+    <p style="margin-top:32px;">
+      <a href="${dashboardUrl}" style="background:#7c3aed;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;">
+        Open full dashboard for evidence, tiering &amp; drill-downs →
+      </a>
+    </p>
   </div>`;
 }
 

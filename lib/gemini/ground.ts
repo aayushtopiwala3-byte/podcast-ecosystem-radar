@@ -1,9 +1,7 @@
 import { db } from "../db";
 import { episodeEntities } from "../db/schema";
 import { eq } from "drizzle-orm";
-
-const MODEL_NAME = "gemini-flash-latest";
-const API_KEY = process.env.GEMINI_API_KEY;
+import { chatCompletion } from "../openrouter/client";
 
 export type Suggestion = { name: string; reason: string; sourceUrl?: string };
 
@@ -27,27 +25,12 @@ function parseSuggestions(text: string): Suggestion[] {
   }
 }
 
-// The installed @google/generative-ai SDK only types the legacy googleSearchRetrieval
-// grounding tool, not the google_search tool gemini-flash-latest needs, so this bypasses
-// the SDK and calls the REST endpoint directly.
+// OpenRouter has no equivalent of Google's native `google_search` grounding tool. Grounding here
+// goes through OpenRouter's own "web" plugin (see lib/openrouter/client.ts), still on the same
+// pinned Gemini Flash model. Any failure (quota, bad JSON, no results) falls back to an empty
+// list — never fabricates a name.
 async function groundedGenerate(prompt: string): Promise<Suggestion[]> {
-  if (!API_KEY) throw new Error("GEMINI_API_KEY is not set");
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }],
-      generationConfig: { temperature: 0.4 },
-    }),
-  });
-
-  const json = await res.json();
-  if (json.error) throw new Error(`Gemini grounding error: ${json.error.message}`);
-
-  const text = (json.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("");
+  const text = await chatCompletion(prompt, { temperature: 0.4, grounded: true, maxSearchResults: 3 });
   return parseSuggestions(text);
 }
 
