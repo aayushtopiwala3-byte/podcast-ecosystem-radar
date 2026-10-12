@@ -61,11 +61,15 @@ export async function chatCompletion(userPrompt: string, opts: ChatOptions = {})
     throw new Error(`OpenRouter returned no content: ${JSON.stringify(json).slice(0, 500)}`);
   }
 
+  // Under BYOK (bring-your-own-key), OpenRouter's own `usage.cost` is always 0 — that field is
+  // OpenRouter's markup, which BYOK waives. The real dollar cost actually billed by the upstream
+  // provider (Google) is `usage.cost_details.upstream_inference_cost`. Fall back to `usage.cost`
+  // for non-BYOK setups where `cost_details` isn't present.
   const usage: ChatUsage = {
     promptTokens: json.usage?.prompt_tokens ?? 0,
     completionTokens: json.usage?.completion_tokens ?? 0,
     totalTokens: json.usage?.total_tokens ?? 0,
-    costUsd: json.usage?.cost ?? 0,
+    costUsd: json.usage?.cost_details?.upstream_inference_cost ?? json.usage?.cost ?? 0,
   };
 
   return { content, usage };
