@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0e1a;
+  --card: #13172a;
+  --card-hover: #171c33;
+  --border: #22263f;
+  --text: #e8eaf5;
+  --text-dim: #8b91ac;
+
+  --violet: #a855f7;
+  --violet-deep: #7c3aed;
+  --cyan: #22d3ee;
+  --blue: #3b82f6;
+  --magenta: #ec4899;
+  --pink: #d946ef;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--violet-deep);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+.glow-violet {
+  box-shadow: 0 0 40px -12px rgba(168, 85, 247, 0.45);
+}
+.glow-cyan {
+  box-shadow: 0 0 40px -12px rgba(34, 211, 238, 0.45);
+}
+.glow-magenta {
+  box-shadow: 0 0 40px -12px rgba(236, 72, 153, 0.45);
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-slide-in {
+  animation: fadeSlideIn 0.4s ease-out both;
+}

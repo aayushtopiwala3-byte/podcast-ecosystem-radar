@@ -1,0 +1,112 @@
+<svg viewBox="0 0 1400 870" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Podcast Ecosystem Radar Components Map</title>
+<desc>Swimlane diagram: Scheduler triggers System, which feeds AI Models, which hands off to an Email Service, which together with the live dashboard reach Aditya.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#1e293b"/>
+</marker>
+</defs>
+
+<rect x="0" y="0" width="1400" height="870" fill="#ffffff"/>
+<rect x="0" y="0" width="1400" height="50" fill="#0f172a"/>
+<text x="700" y="31" text-anchor="middle" font-family="Arial, sans-serif" font-size="21" font-weight="bold" fill="#ffffff">Podcast Ecosystem Radar — Components Map</text>
+
+<g font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#ffffff">
+<rect x="0" y="50" width="150" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="75" y="80" text-anchor="middle">Actor</text>
+<rect x="150" y="50" width="195" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="247" y="80" text-anchor="middle">Trigger</text>
+<rect x="345" y="50" width="195" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="442" y="80" text-anchor="middle">Input</text>
+<rect x="540" y="50" width="195" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="637" y="80" text-anchor="middle">Context</text>
+<rect x="735" y="50" width="195" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="832" y="80" text-anchor="middle">Processing</text>
+<rect x="930" y="50" width="195" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="1027" y="80" text-anchor="middle">AI</text>
+<rect x="1125" y="50" width="275" height="50" fill="#1e293b" stroke="#ffffff"/>
+<text x="1262" y="80" text-anchor="middle">Output</text>
+</g>
+
+<rect x="0" y="100" width="1400" height="140" fill="#eef2ff"/>
+<rect x="0" y="240" width="1400" height="140" fill="#fefce8"/>
+<rect x="0" y="380" width="1400" height="155" fill="#ecfdf5"/>
+<rect x="0" y="535" width="1400" height="140" fill="#fdf2f8"/>
+<rect x="0" y="675" width="1400" height="140" fill="#fff7ed"/>
+<line x1="0" y1="240" x2="1400" y2="240" stroke="#e2e8f0"/>
+<line x1="0" y1="380" x2="1400" y2="380" stroke="#e2e8f0"/>
+<line x1="0" y1="535" x2="1400" y2="535" stroke="#e2e8f0"/>
+<line x1="0" y1="675" x2="1400" y2="675" stroke="#e2e8f0"/>
+
+<g font-family="Arial, sans-serif" text-anchor="middle">
+<text x="75" y="165" font-size="16" font-weight="bold" fill="#1e293b">Aditya</text>
+<text x="75" y="186" font-size="12" fill="#64748b">(Podcast Host)</text>
+
+<text x="75" y="305" font-size="16" font-weight="bold" fill="#1e293b">Scheduler</text>
+<text x="75" y="326" font-size="12" fill="#64748b">(Vercel Cron)</text>
+
+<text x="75" y="450" font-size="16" font-weight="bold" fill="#1e293b">System</text>
+<text x="75" y="471" font-size="12" fill="#64748b">(Next.js API)</text>
+
+<text x="75" y="600" font-size="16" font-weight="bold" fill="#1e293b">AI Models</text>
+<text x="75" y="621" font-size="12" fill="#64748b">(Gemini Flash)</text>
+
+<text x="75" y="740" font-size="16" font-weight="bold" fill="#1e293b">Email Service</text>
+<text x="75" y="761" font-size="12" fill="#64748b">(Resend)</text>
+</g>
+
+<!-- Row 1: Aditya - Output box -->
+<rect x="1140" y="122" width="245" height="100" rx="8" fill="#ffffff" stroke="#6366f1" stroke-width="2"/>
+<text x="1262" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Dashboard + email brief</text>
+<text x="1262" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">Guest leads, trending topics,</text>
+<text x="1262" y="183" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">sponsor signals — Mon AM</text>
+<text x="1262" y="201" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">(public Vercel URL + inbox)</text>
+
+<!-- Row 2: Scheduler - Trigger box -->
+<rect x="165" y="262" width="165" height="90" rx="8" fill="#ffffff" stroke="#ca8a04" stroke-width="2"/>
+<text x="247" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Weekly cron fires</text>
+<text x="247" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">Monday 5:00 AM IST</text>
+<text x="247" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">before production week</text>
+
+<!-- Row 3: System - Input, Context, Processing boxes -->
+<rect x="360" y="402" width="165" height="80" rx="8" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<text x="442" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Loads 10-show config</text>
+<text x="442" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">from Postgres</text>
+<text x="442" y="492" text-anchor="middle" font-family="Arial, sans-serif" font-size="10.5" font-style="italic" fill="#64748b">editable via admin UI — no redeploy</text>
+
+<rect x="555" y="402" width="165" height="80" rx="8" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<text x="637" y="426" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Fetches new episodes</text>
+<text x="637" y="446" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">RSS parse +</text>
+<text x="637" y="464" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">YouTube caption pull</text>
+
+<rect x="750" y="402" width="165" height="80" rx="8" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+<text x="832" y="426" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Normalizes &amp; stores</text>
+<text x="832" y="446" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">episodes + transcripts</text>
+<text x="832" y="464" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">in Postgres</text>
+
+<!-- Row 4: AI Models - AI box -->
+<rect x="960" y="557" width="165" height="100" rx="8" fill="#ffffff" stroke="#db2777" stroke-width="2"/>
+<text x="1042" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Gemini Flash extracts</text>
+<text x="1042" y="604" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">guests / topics / sponsors</text>
+<text x="1042" y="622" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">(structured JSON + excerpt)</text>
+<text x="1042" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">flags repeats across shows</text>
+
+<!-- Row 5: Email Service - box -->
+<rect x="750" y="697" width="165" height="100" rx="8" fill="#ffffff" stroke="#ea580c" stroke-width="2"/>
+<text x="832" y="725" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#1e293b">Sends Monday brief</text>
+<text x="832" y="744" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">email via Resend</text>
+<text x="832" y="762" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#334155">to Aditya's inbox</text>
+<text x="832" y="780" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">(same data as dashboard)</text>
+
+<!-- arrows -->
+<g fill="none" stroke="#1e293b" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)">
+<path d="M330,307 L442,307 L442,400"/>
+<path d="M525,442 L553,442"/>
+<path d="M720,442 L748,442"/>
+<path d="M832,482 L832,515 L1042,515 L1042,555"/>
+<path d="M1042,657 L1042,680 L832,680 L832,695"/>
+<path d="M915,747 L1300,747 L1300,222 L1387,222"/>
+</g>
+
+<text x="700" y="855" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#94a3b8">Dashed arrows = sequence of data / control flow for one weekly run</text>
+</svg>
