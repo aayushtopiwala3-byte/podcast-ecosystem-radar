@@ -1,4 +1,4 @@
-import { chatCompletion } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../openrouter/client";
 
 export type InviteEvidence = {
   episodeTitle: string;
@@ -22,7 +22,7 @@ export async function draftInviteEmail(params: {
   guestName: string;
   topic?: string | null;
   evidence?: InviteEvidence | null;
-}): Promise<InviteDraft> {
+}): Promise<{ draft: InviteDraft; usage: ChatUsage }> {
   const { guestName, topic, evidence } = params;
 
   const hook = evidence
@@ -41,14 +41,14 @@ Personalization hook (use it naturally, don't just repeat it verbatim): ${hook}
 
 Keep it under 150 words, no generic filler, sign off as "Aditya". Output strictly valid JSON matching the schema, no markdown.`;
 
-  const text = await chatCompletion(prompt, {
+  const { content, usage } = await chatCompletion(prompt, {
     temperature: 0.5,
     jsonSchema: { name: "invite_draft", schema: responseSchema },
   });
 
   try {
-    return JSON.parse(text) as InviteDraft;
+    return { draft: JSON.parse(content) as InviteDraft, usage };
   } catch {
-    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON for invite draft: ${text.slice(0, 300)}`);
+    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON for invite draft: ${content.slice(0, 300)}`);
   }
 }

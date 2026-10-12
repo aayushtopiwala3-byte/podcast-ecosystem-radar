@@ -1,4 +1,4 @@
-import { chatCompletion } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../openrouter/client";
 import { TOPIC_TAXONOMY } from "./taxonomy";
 
 export type ExtractionResult = {
@@ -77,25 +77,31 @@ Rules:
 - If the input text is too short or uninformative (e.g. just a title with no real content), return empty arrays.
 - Output strictly valid JSON matching the provided schema. No markdown, no commentary.`;
 
-export async function extractEntities(episodeTitle: string, rawText: string): Promise<ExtractionResult> {
+export async function extractEntities(
+  episodeTitle: string,
+  rawText: string
+): Promise<{ result: ExtractionResult; usage: ChatUsage }> {
   // Gemini Flash has a large context window but we cap input defensively to control cost/latency.
   const truncated = rawText.length > 18000 ? rawText.slice(0, 18000) : rawText;
   const prompt = `Episode title: ${episodeTitle}\n\nEpisode text:\n${truncated}`;
 
-  const text = await chatCompletion(prompt, {
+  const { content, usage } = await chatCompletion(prompt, {
     systemPrompt: SYSTEM_PROMPT,
     temperature: 0.2,
     jsonSchema: { name: "episode_extraction", schema: responseSchema },
   });
 
   try {
-    const parsed = JSON.parse(text) as ExtractionResult;
+    const parsed = JSON.parse(content) as ExtractionResult;
     return {
-      guests: parsed.guests ?? [],
-      topics: parsed.topics ?? [],
-      sponsors: parsed.sponsors ?? [],
+      result: {
+        guests: parsed.guests ?? [],
+        topics: parsed.topics ?? [],
+        sponsors: parsed.sponsors ?? [],
+      },
+      usage,
     };
   } catch (e) {
-    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON: ${text.slice(0, 500)}`);
+    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON: ${content.slice(0, 500)}`);
   }
 }

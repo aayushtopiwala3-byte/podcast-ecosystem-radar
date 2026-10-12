@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { episodeEntities } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { chatCompletion } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../openrouter/client";
 
 export type Suggestion = { name: string; reason: string; sourceUrl?: string };
 
@@ -29,12 +29,14 @@ function parseSuggestions(text: string): Suggestion[] {
 // goes through OpenRouter's own "web" plugin (see lib/openrouter/client.ts), still on the same
 // pinned Gemini Flash model. Any failure (quota, bad JSON, no results) falls back to an empty
 // list — never fabricates a name.
-async function groundedGenerate(prompt: string): Promise<Suggestion[]> {
-  const text = await chatCompletion(prompt, { temperature: 0.4, grounded: true, maxSearchResults: 3 });
-  return parseSuggestions(text);
+async function groundedGenerate(prompt: string): Promise<{ suggestions: Suggestion[]; usage: ChatUsage }> {
+  const { content, usage } = await chatCompletion(prompt, { temperature: 0.4, grounded: true, maxSearchResults: 3 });
+  return { suggestions: parseSuggestions(content), usage };
 }
 
-export async function suggestGuestsForTopic(topic: string): Promise<Suggestion[]> {
+export async function suggestGuestsForTopic(
+  topic: string
+): Promise<{ suggestions: Suggestion[]; usage: ChatUsage | null }> {
   try {
     const known = await getKnownNames("guest");
     const prompt = `You are a podcast booking researcher. Using web search, find 3 real, currently active startup founders or operators who would be strong potential podcast guests for a show covering the topic "${topic}".
@@ -47,11 +49,13 @@ Strict rules:
     return await groundedGenerate(prompt);
   } catch (err) {
     console.error(`suggestGuestsForTopic(${topic}) failed, falling back to empty list:`, err);
-    return [];
+    return { suggestions: [], usage: null };
   }
 }
 
-export async function suggestSponsorsForTopic(topic: string): Promise<Suggestion[]> {
+export async function suggestSponsorsForTopic(
+  topic: string
+): Promise<{ suggestions: Suggestion[]; usage: ChatUsage | null }> {
   try {
     const known = await getKnownNames("sponsor");
     const prompt = `You are a podcast sponsorship researcher. Using web search, find 3 real brands or products that are topically relevant to "${topic}" and are plausible podcast ad-read sponsors, but are NOT in this list of brands already detected as sponsors on our monitored shows: ${known.length ? known.join(", ") : "(none yet)"}.
@@ -63,6 +67,6 @@ Strict rules:
     return await groundedGenerate(prompt);
   } catch (err) {
     console.error(`suggestSponsorsForTopic(${topic}) failed, falling back to empty list:`, err);
-    return [];
+    return { suggestions: [], usage: null };
   }
 }

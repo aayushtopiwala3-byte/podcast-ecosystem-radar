@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, decodeHtmlEntities } from "@/lib/format";
 
 export type EvidenceRow = {
   value?: string;
@@ -44,7 +44,7 @@ export default function EvidenceList({ evidence }: { evidence: EvidenceRow[] }) 
             rel="noopener noreferrer"
             className="text-white hover:underline font-medium"
           >
-            {e.episodeTitle}
+            {decodeHtmlEntities(e.episodeTitle)}
           </a>
           <div className="text-xs text-[var(--text-dim)] mt-0.5">
             {e.showName} · {fmtDate(e.publishedAt)}

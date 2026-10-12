@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   let draft;
   try {
-    draft = await draftInviteEmail({ guestName: guestValue, topic: topicValue ?? null, evidence });
+    ({ draft } = await draftInviteEmail({ guestName: guestValue, topic: topicValue ?? null, evidence }));
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? "Failed to draft invite" }, { status: 502 });
   }

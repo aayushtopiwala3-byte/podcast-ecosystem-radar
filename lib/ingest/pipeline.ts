@@ -8,6 +8,7 @@ import { normalize, normalizeGuestName } from "./normalize";
 import { mapLimit } from "./concurrency";
 import { fetchViewCounts } from "../youtube/stats";
 import { recomputeViewRatios } from "../scoring/virality";
+import type { ChatUsage } from "../openrouter/client";
 
 const EPISODE_CONCURRENCY = 4;
 const SHOW_CONCURRENCY = 10;
@@ -25,10 +26,13 @@ type ShowOutcome = {
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
+type AiUsageTotals = { calls: number; totalTokens: number; costUsd: number };
+
 export async function runPipeline(): Promise<{
   runId: number;
   status: "success" | "partial" | "failed";
   outcomes: ShowOutcome[];
+  aiUsage: AiUsageTotals;
 }> {
   const [run] = await db
     .insert(pipelineRuns)
@@ -37,7 +41,8 @@ export async function runPipeline(): Promise<{
 
   const activeShows = await db.select().from(shows).where(eq(shows.active, true));
 
-  const outcomes = await mapLimit(activeShows, SHOW_CONCURRENCY, (show) => processShow(show));
+  const aiUsages: ChatUsage[] = [];
+  const outcomes = await mapLimit(activeShows, SHOW_CONCURRENCY, (show) => processShow(show, aiUsages));
 
   const anySuccess = outcomes.some((o) => o.status === "success" || o.status === "no_new_episodes");
   const anyFailed = outcomes.some((o) => o.status === "failed");
@@ -47,21 +52,27 @@ export async function runPipeline(): Promise<{
     ? "partial"
     : "success";
 
+  const aiUsage: AiUsageTotals = {
+    calls: aiUsages.length,
+    totalTokens: aiUsages.reduce((sum, u) => sum + u.totalTokens, 0),
+    costUsd: aiUsages.reduce((sum, u) => sum + u.costUsd, 0),
+  };
+
   await db
     .update(pipelineRuns)
     .set({
       finishedAt: new Date(),
       status: overallStatus,
-      details: { outcomes },
+      details: { outcomes, aiUsage },
     })
     .where(eq(pipelineRuns.id, run.id));
 
-  return { runId: run.id, status: overallStatus, outcomes };
+  return { runId: run.id, status: overallStatus, outcomes, aiUsage };
 }
 
 type Show = typeof shows.$inferSelect;
 
-async function processShow(show: Show): Promise<ShowOutcome> {
+async function processShow(show: Show, aiUsages: ChatUsage[]): Promise<ShowOutcome> {
   const outcome: ShowOutcome = {
     showId: show.id,
     showName: show.name,
@@ -116,7 +127,8 @@ async function processShow(show: Show): Promise<ShowOutcome> {
           .returning();
 
         outcome.newEpisodes++;
-        await extractAndStore(episode.id, video.title, rawText);
+        const usage = await extractAndStore(episode.id, video.title, rawText);
+        if (usage) aiUsages.push(usage);
       });
 
       await recomputeViewRatios(show.id);
@@ -152,7 +164,8 @@ async function processShow(show: Show): Promise<ShowOutcome> {
           .returning();
 
         outcome.newEpisodes++;
-        await extractAndStore(episode.id, item.title, rawText);
+        const usage = await extractAndStore(episode.id, item.title, rawText);
+        if (usage) aiUsages.push(usage);
       });
     }
 
@@ -172,9 +185,9 @@ export async function extractAndStore(
   title: string,
   rawText: string,
   options: { replaceExisting?: boolean } = {}
-) {
+): Promise<ChatUsage | null> {
   try {
-    const extraction = await extractEntities(title, rawText);
+    const { result: extraction, usage } = await extractEntities(title, rawText);
 
     const rows: (typeof episodeEntities.$inferInsert)[] = [];
 
@@ -224,9 +237,12 @@ export async function extractAndStore(
     if (rows.length > 0) {
       await db.insert(episodeEntities).values(rows);
     }
+
+    return usage;
   } catch (err) {
     // Extraction failure for a single episode should not fail the whole show run;
     // the episode row still exists as evidence that ingestion happened.
     console.error(`Gemini extraction failed for episode ${episodeId}:`, err);
+    return null;
   }
 }

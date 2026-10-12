@@ -1,4 +1,4 @@
-import { chatCompletion } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../openrouter/client";
 
 export type InterviewPrepDraft = { questions: string[]; script: string };
 
@@ -19,7 +19,7 @@ export async function draftInterviewPrep(params: {
   topicPerformance?: { showCount: number; avgViewRatio: number } | null;
   evidence?: { episodeTitle: string; showName: string; excerpt: string | null; viewRatio: number | null } | null;
   suggestionReason?: string | null;
-}): Promise<InterviewPrepDraft> {
+}): Promise<{ draft: InterviewPrepDraft; usage: ChatUsage }> {
   const { guestName, guestSource, topic, topicPerformance, evidence, suggestionReason } = params;
 
   const performanceContext = topicPerformance
@@ -50,14 +50,16 @@ Produce two things:
 
 This is a draft for Aditya to review and edit before recording — be direct and concrete, not generic advice. Output strictly valid JSON matching the schema, no markdown.`;
 
-  const text = await chatCompletion(prompt, {
+  const { content, usage } = await chatCompletion(prompt, {
     temperature: 0.6,
     jsonSchema: { name: "interview_prep_draft", schema: responseSchema },
   });
 
   try {
-    return JSON.parse(text) as InterviewPrepDraft;
+    return { draft: JSON.parse(content) as InterviewPrepDraft, usage };
   } catch {
-    throw new Error(`OpenRouter (Gemini Flash) returned invalid JSON for interview prep draft: ${text.slice(0, 300)}`);
+    throw new Error(
+      `OpenRouter (Gemini Flash) returned invalid JSON for interview prep draft: ${content.slice(0, 300)}`
+    );
   }
 }

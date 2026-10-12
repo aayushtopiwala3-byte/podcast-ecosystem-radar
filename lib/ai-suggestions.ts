@@ -15,7 +15,7 @@ async function ensureOne(kind: "guest" | "sponsor", topic: string) {
   const isFresh = row && Date.now() - new Date(row.generatedAt).getTime() < SEVEN_DAYS_MS;
   if (isFresh) return;
 
-  const suggestions = kind === "guest" ? await suggestGuestsForTopic(topic) : await suggestSponsorsForTopic(topic);
+  const { suggestions } = kind === "guest" ? await suggestGuestsForTopic(topic) : await suggestSponsorsForTopic(topic);
   if (suggestions.length === 0) return; // keep any existing (stale) cache rather than overwrite with an empty failed result
 
   await db

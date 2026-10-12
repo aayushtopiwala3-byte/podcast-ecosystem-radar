@@ -14,7 +14,10 @@ type ChatOptions = {
   maxSearchResults?: number;
 };
 
-export async function chatCompletion(userPrompt: string, opts: ChatOptions = {}): Promise<string> {
+export type ChatUsage = { promptTokens: number; completionTokens: number; totalTokens: number; costUsd: number };
+export type ChatResponse = { content: string; usage: ChatUsage };
+
+export async function chatCompletion(userPrompt: string, opts: ChatOptions = {}): Promise<ChatResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
@@ -26,6 +29,7 @@ export async function chatCompletion(userPrompt: string, opts: ChatOptions = {})
     model: PINNED_MODEL,
     messages,
     temperature: opts.temperature,
+    usage: { include: true },
   };
 
   if (opts.jsonSchema) {
@@ -56,5 +60,13 @@ export async function chatCompletion(userPrompt: string, opts: ChatOptions = {})
   if (typeof content !== "string" || !content.trim()) {
     throw new Error(`OpenRouter returned no content: ${JSON.stringify(json).slice(0, 500)}`);
   }
-  return content;
+
+  const usage: ChatUsage = {
+    promptTokens: json.usage?.prompt_tokens ?? 0,
+    completionTokens: json.usage?.completion_tokens ?? 0,
+    totalTokens: json.usage?.total_tokens ?? 0,
+    costUsd: json.usage?.cost ?? 0,
+  };
+
+  return { content, usage };
 }

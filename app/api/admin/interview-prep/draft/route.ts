@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   let draft;
   try {
-    draft = await draftInterviewPrep({
+    ({ draft } = await draftInterviewPrep({
       guestName: guestValue,
       guestSource,
       topic: topicValue,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         : null,
       evidence,
       suggestionReason: typeof suggestionReason === "string" ? suggestionReason : null,
-    });
+    }));
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? "Failed to draft interview prep" }, { status: 502 });
   }
