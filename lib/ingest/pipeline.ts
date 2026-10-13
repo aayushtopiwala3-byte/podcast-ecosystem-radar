@@ -8,7 +8,7 @@ import { normalize, normalizeGuestName } from "./normalize";
 import { mapLimit } from "./concurrency";
 import { fetchViewCounts } from "../youtube/stats";
 import { recomputeViewRatios } from "../scoring/virality";
-import type { ChatUsage } from "../openrouter/client";
+import { PINNED_MODEL, type ChatUsage } from "../ai/gemini-flash";
 
 const EPISODE_CONCURRENCY = 4;
 const SHOW_CONCURRENCY = 10;
@@ -63,7 +63,7 @@ export async function runPipeline(): Promise<{
     .set({
       finishedAt: new Date(),
       status: overallStatus,
-      details: { outcomes, aiUsage },
+      details: { outcomes, aiUsage, model: PINNED_MODEL },
     })
     .where(eq(pipelineRuns.id, run.id));
 

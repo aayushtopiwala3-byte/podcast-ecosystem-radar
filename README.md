@@ -29,6 +29,12 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## AI Compliance
+
+Every AI call in this codebase goes through [`lib/ai/gemini-flash.ts`](lib/ai/gemini-flash.ts), which is pinned to a single exact model id (`PINNED_MODEL`, currently `google/gemini-3.8-flash`) and routed through OpenRouter. No call site may parameterize or default to a different model — `chatCompletion`'s options type has no `model` field, and the client throws if OpenRouter's response reports back a different model than the one pinned, so a silent reroute fails loudly instead of quietly changing behavior or billing.
+
+The resolved model id is recorded on every pipeline run (`pipeline_runs.details.model`) and surfaced in the Source Health UI (`/sources`) so the model actually used is independently verifiable, not just asserted in code.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

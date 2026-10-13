@@ -1,6 +1,13 @@
 // Compliance: every AI call in this codebase must go through OpenRouter, pinned to this
-// exact Gemini Flash model id. Never parameterize or default to a different model.
+// exact Gemini Flash model id. Never parameterize or default to a different model — ChatOptions
+// intentionally has no `model` field, and the response is checked against PINNED_MODEL below so
+// a silent OpenRouter-side reroute (fallback routing, deprecation) fails loudly instead of
+// quietly billing/behaving under a different model.
 export const PINNED_MODEL = "google/gemini-3.8-flash";
+
+if (!/gemini.*flash/i.test(PINNED_MODEL)) {
+  throw new Error(`PINNED_MODEL "${PINNED_MODEL}" is not a Gemini Flash model id — refusing to load`);
+}
 
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -15,7 +22,7 @@ type ChatOptions = {
 };
 
 export type ChatUsage = { promptTokens: number; completionTokens: number; totalTokens: number; costUsd: number };
-export type ChatResponse = { content: string; usage: ChatUsage };
+export type ChatResponse = { content: string; usage: ChatUsage; model: string };
 
 export async function chatCompletion(userPrompt: string, opts: ChatOptions = {}): Promise<ChatResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
@@ -56,6 +63,10 @@ export async function chatCompletion(userPrompt: string, opts: ChatOptions = {})
   const json = await res.json();
   if (json.error) throw new Error(`OpenRouter error: ${json.error.message}`);
 
+  if (typeof json.model === "string" && json.model !== PINNED_MODEL) {
+    throw new Error(`OpenRouter served model "${json.model}" instead of pinned "${PINNED_MODEL}"`);
+  }
+
   const content = json.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) {
     throw new Error(`OpenRouter returned no content: ${JSON.stringify(json).slice(0, 500)}`);
@@ -72,5 +83,5 @@ export async function chatCompletion(userPrompt: string, opts: ChatOptions = {})
     costUsd: json.usage?.cost_details?.upstream_inference_cost ?? json.usage?.cost ?? 0,
   };
 
-  return { content, usage };
+  return { content, usage, model: typeof json.model === "string" ? json.model : PINNED_MODEL };
 }

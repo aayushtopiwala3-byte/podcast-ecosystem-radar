@@ -1,4 +1,4 @@
-import { chatCompletion, type ChatUsage } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../ai/gemini-flash";
 
 export type InterviewPrepDraft = { questions: string[]; script: string };
 

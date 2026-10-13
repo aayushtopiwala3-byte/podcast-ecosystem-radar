@@ -11,8 +11,13 @@ function summaryList(items: string[], emptyText: string) {
 }
 
 export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string): string {
-  const guestItems = payload.guestLeads.map(
-    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.urgent ? " · act fast" : ""}${g.overexposed ? " · overexposed" : ""}`
+  const urgentLeads = payload.guestLeads.filter((g) => g.urgent);
+  const validatedLeads = payload.guestLeads.filter((g) => !g.urgent);
+  const urgentItems = urgentLeads.map(
+    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows · act fast${g.overexposed ? " · overexposed" : ""}`
+  );
+  const validatedItems = validatedLeads.map(
+    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.overexposed ? " · overexposed" : ""}`
   );
 
   const topicItems = payload.trendingTopics.map(
@@ -31,7 +36,15 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
     <p style="color:#64748b;">Week of ${payload.weekStartDate}</p>
 
     <h2 style="color:#7c3aed; border-bottom:2px solid #a855f7; padding-bottom:6px;">Guest Leads (${payload.guestLeads.length})</h2>
-    ${summaryList(guestItems, "No guests appeared on 2+ monitored shows in the last 6 months.")}
+    <p style="color:#64748b; font-size:13px;">
+      "On 2+ shows in the last 30 days" is the active media-round signal — book fast. "Validated over the last 6 months" is a wider pool, not currently in a media round.
+    </p>
+
+    <h3 style="color:#7c3aed; font-size:15px;">On 2+ shows in the last 30 days — active media round</h3>
+    ${summaryList(urgentItems, "No guest is on 2+ shows in the last 30 days right now.")}
+
+    <h3 style="color:#7c3aed; font-size:15px;">Validated over the last 6 months — not currently in a media round</h3>
+    ${summaryList(validatedItems, "No other guests appeared on 2+ monitored shows in the last 6 months.")}
 
     <h2 style="color:#3b82f6; border-bottom:2px solid #22d3ee; padding-bottom:6px;">Trending Topics (${payload.trendingTopics.length})</h2>
     ${summaryList(topicItems, "No topics covered by 2+ shows in the last 6 months.")}

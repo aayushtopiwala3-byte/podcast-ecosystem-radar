@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { episodeEntities } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { chatCompletion, type ChatUsage } from "../openrouter/client";
+import { chatCompletion, type ChatUsage } from "../ai/gemini-flash";
 
 export type Suggestion = { name: string; reason: string; sourceUrl?: string };
 
@@ -26,7 +26,7 @@ function parseSuggestions(text: string): Suggestion[] {
 }
 
 // OpenRouter has no equivalent of Google's native `google_search` grounding tool. Grounding here
-// goes through OpenRouter's own "web" plugin (see lib/openrouter/client.ts), still on the same
+// goes through OpenRouter's own "web" plugin (see lib/ai/gemini-flash.ts), still on the same
 // pinned Gemini Flash model. Any failure (quota, bad JSON, no results) falls back to an empty
 // list — never fabricates a name.
 async function groundedGenerate(prompt: string): Promise<{ suggestions: Suggestion[]; usage: ChatUsage }> {

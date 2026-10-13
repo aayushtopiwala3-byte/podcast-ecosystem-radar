@@ -151,7 +151,9 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
         overexposed: recentAppearances >= 4,
       };
     })
-    .sort((a, b) => b.showCount - a.showCount);
+    // Same-month overlaps (urgent) surface first — they're the active media-round signal
+    // the assignment asks for; the rest is the wider 6-month validation set.
+    .sort((a, b) => Number(b.urgent) - Number(a.urgent) || b.showCount - a.showCount);
 
   // Top-5 performing topics drive both the global proven-draws scope and the
   // AI-suggested guest/sponsor pools — computed once, reused below.

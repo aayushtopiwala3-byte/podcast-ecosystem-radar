@@ -19,6 +19,8 @@ export default async function SourcesPage() {
     getWeeklyEpisodeSeries(),
   ]);
 
+  const aiModel = (latestRun?.details as any)?.model as string | undefined;
+
   return (
     <div className="max-w-4xl mx-auto">
       <header className="mb-8">
@@ -31,6 +33,7 @@ export default async function SourcesPage() {
               })} — status: ${latestRun.status}`
             : "Pipeline has never run yet."}
         </p>
+        {aiModel && <p className="text-xs text-[var(--text-dim)] mt-1">AI model: {aiModel} (Gemini Flash)</p>}
       </header>
 
       <div className="mb-8">

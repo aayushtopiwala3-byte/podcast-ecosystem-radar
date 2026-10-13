@@ -53,13 +53,23 @@ function ExpandableCard({
 }
 
 export default function BriefSections({ payload }: { payload: BriefPayload }) {
+  const urgentLeads = payload.guestLeads.filter((g) => g.urgent);
+  const validatedLeads = payload.guestLeads.filter((g) => !g.urgent);
+
   return (
     <div className="space-y-10">
       <section>
-        <SectionHeader title="Guest Leads" subtitle="Appearing on 2+ shows in the last 6 months — easiest to book right now" color="#a855f7" />
+        <SectionHeader title="Guest Leads" subtitle="Two windows: an active-media-round signal and a wider validation pool — see note below" color="#a855f7" />
+        <p className="text-xs text-[var(--text-dim)] mb-4">
+          "On 2+ shows in the last 30 days" is the active media-round signal — book fast, while the story is fresh.
+          "Validated over the last 6 months" is a wider pool showing guests who have proven cross-show appeal, but
+          aren't necessarily in a media round right now.
+        </p>
+
+        <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">On 2+ shows in the last 30 days — active media round</h4>
         <div className="space-y-3">
-          {payload.guestLeads.length === 0 && <EmptyState text="No guests spotted on multiple shows in the last 6 months yet." />}
-          {payload.guestLeads.map((g) => (
+          {urgentLeads.length === 0 && <EmptyState text="No guest is on 2+ shows in the last 30 days right now." />}
+          {urgentLeads.map((g) => (
             <ExpandableCard
               key={g.value}
               title={g.value}
@@ -68,11 +78,9 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               evidence={g.evidence}
               extra={
                 <span className="flex gap-1 shrink-0">
-                  {g.urgent && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-                      Act fast — 2+ shows this month
-                    </span>
-                  )}
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
+                    Act fast — 2+ shows this month
+                  </span>
                   {g.overexposed && (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">
                       Overexposed — 4+ appearances this quarter
@@ -83,6 +91,30 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               footer={<InviteComposer guestValue={g.value} evidenceEpisodeId={g.evidence[0]?.episodeId} />}
             />
           ))}
+        </div>
+
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Validated over the last 6 months — not currently in a media round</h4>
+          <div className="space-y-3">
+            {validatedLeads.length === 0 && <EmptyState text="No other guests spotted on multiple shows in the last 6 months yet." />}
+            {validatedLeads.map((g) => (
+              <ExpandableCard
+                key={g.value}
+                title={g.value}
+                badge={`${g.showCount} shows`}
+                badgeColor="#a855f7"
+                evidence={g.evidence}
+                extra={
+                  g.overexposed ? (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 shrink-0">
+                      Overexposed — 4+ appearances this quarter
+                    </span>
+                  ) : undefined
+                }
+                footer={<InviteComposer guestValue={g.value} evidenceEpisodeId={g.evidence[0]?.episodeId} />}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
