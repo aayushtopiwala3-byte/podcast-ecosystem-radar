@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { episodeEntities, episodes, inviteDrafts, shows } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
-import { draftInviteEmail } from "@/lib/gemini/invite";
+import { episodeEntities, episodes, interviewPrepDrafts, inviteDrafts, shows } from "@/lib/db/schema";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { draftInviteEmail, type UnaskedAngle } from "@/lib/gemini/invite";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdminAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,9 +35,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Feed the invite from the most recent differentiated-prep white-space angle for this guest
+  // (spec 1.2) — the single unasked-question hook is what makes a 5th podcast ask land.
+  let unaskedAngle: UnaskedAngle | null = null;
+  const [latestPrep] = await db
+    .select({ whiteSpace: interviewPrepDrafts.whiteSpace })
+    .from(interviewPrepDrafts)
+    .where(and(eq(interviewPrepDrafts.guestValue, guestValue), isNotNull(interviewPrepDrafts.whiteSpace)))
+    .orderBy(desc(interviewPrepDrafts.createdAt))
+    .limit(1);
+  if (latestPrep?.whiteSpace) {
+    const whiteSpace = latestPrep.whiteSpace as { question: string; why: string }[];
+    if (whiteSpace.length > 0) unaskedAngle = whiteSpace[0];
+  }
+
   let draft;
   try {
-    ({ draft } = await draftInviteEmail({ guestName: guestValue, topic: topicValue ?? null, evidence }));
+    ({ draft } = await draftInviteEmail({ guestName: guestValue, topic: topicValue ?? null, evidence, unaskedAngle }));
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? "Failed to draft invite" }, { status: 502 });
   }

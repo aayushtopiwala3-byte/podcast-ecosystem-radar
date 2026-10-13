@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Draft = { id: number; questions: string[]; script: string };
+type CoveredQuestion = { text: string; episodeId: number; excerpt: string };
+type WhiteSpaceQuestion = { question: string; why: string };
+type Draft = {
+  id: number;
+  questions: string[];
+  script: string;
+  coveredQuestions: CoveredQuestion[] | null;
+  whiteSpace: WhiteSpaceQuestion[] | null;
+};
 type State = "idle" | "drafting" | "drafted" | "saving" | "unauthorized" | "error";
 
 export default function InterviewPrepComposer({
@@ -118,6 +126,34 @@ export default function InterviewPrepComposer({
           AI-generated draft — review and edit before recording. Not sourced from a real transcript; angles are
           inferred from topic performance data.
         </p>
+        {draft?.coveredQuestions && draft.coveredQuestions.length > 0 && (
+          <div>
+            <label className="text-[10px] font-semibold text-[var(--text-dim)] uppercase tracking-wide">
+              Already covered elsewhere ({draft.coveredQuestions.length})
+            </label>
+            <ul className="mt-1 space-y-1.5">
+              {draft.coveredQuestions.map((c, i) => (
+                <li key={i} className="text-[11px] text-[var(--text-dim)]">
+                  {c.text} — <span className="italic">"{c.excerpt}"</span> (episode {c.episodeId})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {draft?.whiteSpace && draft.whiteSpace.length > 0 && (
+          <div>
+            <label className="text-[10px] font-semibold text-[var(--text-dim)] uppercase tracking-wide">
+              Unasked angles — AI suggestion, grounded in public knowledge
+            </label>
+            <ul className="mt-1 space-y-1.5">
+              {draft.whiteSpace.map((w, i) => (
+                <li key={i} className="text-[11px] text-[var(--text-dim)]">
+                  <span className="text-white">{w.question}</span> — {w.why}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div>
           <label className="text-[10px] font-semibold text-[var(--text-dim)] uppercase tracking-wide">
             Serious questions

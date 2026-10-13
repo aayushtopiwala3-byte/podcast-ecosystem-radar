@@ -13,11 +13,21 @@ function summaryList(items: string[], emptyText: string) {
 export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string): string {
   const urgentLeads = payload.guestLeads.filter((g) => g.urgent);
   const validatedLeads = payload.guestLeads.filter((g) => !g.urgent);
+  const verdictLabel: Record<string, string> = {
+    oversaturated: "Oversaturated",
+    wait: "Wait",
+    book_now: "Book now",
+    warm_lead: "Warm lead",
+  };
+  const verdictTag = (g: BriefPayload["guestLeads"][number]) =>
+    g.profile ? ` · <span style="color:#a855f7;">${verdictLabel[g.profile.verdict]}</span>` : "";
   const urgentItems = urgentLeads.map(
-    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows · act fast${g.overexposed ? " · overexposed" : ""}`
+    (g) =>
+      `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows · act fast${g.overexposed ? " · overexposed" : ""}${verdictTag(g)}`
   );
   const validatedItems = validatedLeads.map(
-    (g) => `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.overexposed ? " · overexposed" : ""}`
+    (g) =>
+      `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.overexposed ? " · overexposed" : ""}${verdictTag(g)}`
   );
 
   const topicItems = payload.trendingTopics.map(

@@ -20,6 +20,8 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
   const [shows, setShows] = useState(initialShows);
   const [runStatus, setRunStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [runResult, setRunResult] = useState<any>(null);
+  const [profilesStatus, setProfilesStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [profilesResult, setProfilesResult] = useState<any>(null);
   const router = useRouter();
 
   const [newShow, setNewShow] = useState({ name: "", platform: "youtube", handle: "", rssUrl: "" });
@@ -44,6 +46,21 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
     } catch (err: any) {
       setRunResult({ error: err.message });
       setRunStatus("error");
+    }
+  }
+
+  async function handleComputeProfiles() {
+    setProfilesStatus("running");
+    setProfilesResult(null);
+    try {
+      const res = await fetch("/api/admin/compute-guest-profiles", { method: "POST" });
+      const data = await res.json();
+      setProfilesResult(data);
+      setProfilesStatus(res.ok && data.ok ? "done" : "error");
+      router.refresh();
+    } catch (err: any) {
+      setProfilesResult({ error: err.message });
+      setProfilesStatus("error");
     }
   }
 
@@ -136,6 +153,13 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
             Log out
           </button>
           <button
+            onClick={handleComputeProfiles}
+            disabled={profilesStatus === "running"}
+            className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#ec4899] to-[#a855f7] disabled:opacity-60 shrink-0"
+          >
+            {profilesStatus === "running" ? "Computing…" : "Compute guest profiles"}
+          </button>
+          <button
             onClick={handleRunPipeline}
             disabled={runStatus === "running"}
             className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#22d3ee] to-[#7c3aed] disabled:opacity-60 shrink-0"
@@ -149,6 +173,14 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
         <div className={`card p-5 fade-slide-in ${runStatus === "error" ? "border-rose-500/40" : ""}`}>
           <pre className="text-xs text-[var(--text-dim)] whitespace-pre-wrap overflow-x-auto max-h-80">
             {JSON.stringify(runResult, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {profilesResult && (
+        <div className={`card p-5 fade-slide-in ${profilesStatus === "error" ? "border-rose-500/40" : ""}`}>
+          <pre className="text-xs text-[var(--text-dim)] whitespace-pre-wrap overflow-x-auto max-h-80">
+            {JSON.stringify(profilesResult, null, 2)}
           </pre>
         </div>
       )}

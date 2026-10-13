@@ -1,8 +1,9 @@
 import { db } from "../db";
-import { aiSuggestions, episodeEntities, episodes, shows, weeklyBriefs } from "../db/schema";
+import { aiSuggestions, episodeEntities, episodes, guestProfiles, shows, weeklyBriefs } from "../db/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { getTopTopics } from "../stats/topic-performance";
 import { getGlobalProvenDraws, type GlobalProvenDraw } from "../stats/proven-draws";
+import { verdictCopy, type Verdict } from "../guests/burn-score";
 
 export type EvidenceItem = {
   showId: number;
@@ -20,9 +21,25 @@ export type FlaggedEntity = {
   evidence: EvidenceItem[];
 };
 
+export type GuestProfileSummary = {
+  verdict: Verdict;
+  copy: string;
+  repetitionScore: number | null;
+  velocity30d: number;
+  appearances90d: number;
+  distinctShows30d: number;
+  distinctShows6m: number;
+  daysSinceLast: number;
+  nextWindowDate: string | null;
+  repeatedStories: { story: string; episodeIds: number[] }[];
+  freshMaterial: { point: string; episodeId: number }[];
+};
+
 export type GuestLead = FlaggedEntity & {
   urgent: boolean; // 2+ distinct shows within the trailing 30 days
   overexposed: boolean; // 4+ total episode appearances within the trailing 90 days
+  // Null until computeGuestProfiles() has run for this guest (admin-triggered, not on the Monday cron path).
+  profile: GuestProfileSummary | null;
 };
 
 export type FlaggedSponsor = FlaggedEntity & {
@@ -132,9 +149,15 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       excerpt: row.excerpt,
     });
   }
-  const guestLeads: GuestLead[] = Array.from(guestGroups.values())
-    .filter((g) => g.showIds.size >= 2)
-    .map((g) => {
+  // Read-only join: guest_profiles rows are computed by a separate admin-triggered
+  // endpoint (lib/guests/burn-score.ts), never by this function — keeps the Monday
+  // cron path free of AI calls.
+  const profileRows = await db.select().from(guestProfiles);
+  const profileByGuest = new Map(profileRows.map((p) => [p.normalizedGuest, p]));
+
+  const guestLeads: GuestLead[] = Array.from(guestGroups.entries())
+    .filter(([, g]) => g.showIds.size >= 2)
+    .map(([key, g]) => {
       const recentShowIds = new Set(
         g.evidence
           .filter((e) => now.getTime() - new Date(e.publishedAt).getTime() <= THIRTY_DAYS_MS)
@@ -143,12 +166,35 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       const recentAppearances = g.evidence.filter(
         (e) => now.getTime() - new Date(e.publishedAt).getTime() <= NINETY_DAYS_MS
       ).length;
+
+      const p = profileByGuest.get(key);
+      const profile: GuestProfileSummary | null = p
+        ? {
+            verdict: p.verdict as Verdict,
+            copy: verdictCopy({
+              verdict: p.verdict as Verdict,
+              appearances90d: p.appearances90d,
+              nextWindowDate: p.nextWindowDate,
+            }),
+            repetitionScore: p.repetitionScore,
+            velocity30d: p.velocity30d,
+            appearances90d: p.appearances90d,
+            distinctShows30d: p.distinctShows30d,
+            distinctShows6m: p.distinctShows6m,
+            daysSinceLast: p.daysSinceLast,
+            nextWindowDate: p.nextWindowDate,
+            repeatedStories: p.repeatedStories as { story: string; episodeIds: number[] }[],
+            freshMaterial: p.freshMaterial as { point: string; episodeId: number }[],
+          }
+        : null;
+
       return {
         value: g.value,
         showCount: g.showIds.size,
         evidence: g.evidence,
         urgent: recentShowIds.size >= 2,
         overexposed: recentAppearances >= 4,
+        profile,
       };
     })
     // Same-month overlaps (urgent) surface first — they're the active media-round signal

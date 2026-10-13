@@ -1,10 +1,69 @@
 "use client";
 
 import { useState } from "react";
-import type { BriefPayload, EvidenceItem } from "@/lib/brief/build";
+import type { BriefPayload, EvidenceItem, GuestProfileSummary } from "@/lib/brief/build";
 import EvidenceList from "./EvidenceList";
 import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
+
+const VERDICT_STYLE: Record<GuestProfileSummary["verdict"], { label: string; color: string }> = {
+  oversaturated: { label: "Oversaturated", color: "#f43f5e" },
+  wait: { label: "Wait", color: "#f59e0b" },
+  book_now: { label: "Book now", color: "#22c55e" },
+  warm_lead: { label: "Warm lead", color: "#94a3b8" },
+};
+
+function VerdictChip({ profile }: { profile: GuestProfileSummary }) {
+  const { label, color } = VERDICT_STYLE[profile.verdict];
+  return (
+    <span
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: `${color}22`, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function GuestProfileDetail({ profile }: { profile: GuestProfileSummary }) {
+  return (
+    <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
+      <p className="text-xs" style={{ color: VERDICT_STYLE[profile.verdict].color }}>
+        {profile.copy}
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+        {[
+          { label: "Velocity (30d)", value: profile.velocity30d },
+          { label: "Appearances (90d)", value: profile.appearances90d },
+          { label: "Distinct shows (30d)", value: profile.distinctShows30d },
+          { label: "Days since last", value: profile.daysSinceLast },
+        ].map((s) => (
+          <div key={s.label} className="rounded-lg bg-white/5 py-2 px-1">
+            <div className="text-sm font-semibold text-white">{s.value}</div>
+            <div className="text-[10px] text-[var(--text-dim)]">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      {profile.repetitionScore !== null && (
+        <div className="text-xs text-[var(--text-dim)]">
+          Repetition score: <span className="text-white font-medium">{profile.repetitionScore.toFixed(2)}</span>
+        </div>
+      )}
+      {profile.repeatedStories.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-[var(--text-dim)] mb-1.5">Repeated stories</div>
+          <ul className="space-y-1.5">
+            {profile.repeatedStories.map((s, i) => (
+              <li key={i} className="text-xs text-[var(--text-dim)]">
+                "{s.story}" — episodes {s.episodeIds.join(", ")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ExpandableCard({
   title,
@@ -13,6 +72,7 @@ function ExpandableCard({
   evidence,
   extra,
   footer,
+  profile,
 }: {
   title: string;
   badge: string;
@@ -20,6 +80,7 @@ function ExpandableCard({
   evidence: EvidenceItem[];
   extra?: React.ReactNode;
   footer?: React.ReactNode;
+  profile?: GuestProfileSummary | null;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -27,6 +88,7 @@ function ExpandableCard({
       <button className="w-full flex items-center justify-between gap-3 text-left" onClick={() => setOpen(!open)}>
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-semibold text-white truncate">{title}</span>
+          {profile && <VerdictChip profile={profile} />}
           {extra}
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -46,6 +108,7 @@ function ExpandableCard({
           </svg>
         </div>
       </button>
+      {open && profile && <GuestProfileDetail profile={profile} />}
       {open && <EvidenceList evidence={evidence} />}
       {footer}
     </div>
@@ -76,6 +139,7 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               badge={`${g.showCount} shows`}
               badgeColor="#a855f7"
               evidence={g.evidence}
+              profile={g.profile}
               extra={
                 <span className="flex gap-1 shrink-0">
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
@@ -104,6 +168,7 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
                 badge={`${g.showCount} shows`}
                 badgeColor="#a855f7"
                 evidence={g.evidence}
+                profile={g.profile}
                 extra={
                   g.overexposed ? (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 shrink-0">
