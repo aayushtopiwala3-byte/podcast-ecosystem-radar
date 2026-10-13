@@ -22,6 +22,8 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
   const [runResult, setRunResult] = useState<any>(null);
   const [profilesStatus, setProfilesStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [profilesResult, setProfilesResult] = useState<any>(null);
+  const [lifecycleStatus, setLifecycleStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [lifecycleResult, setLifecycleResult] = useState<any>(null);
   const router = useRouter();
 
   const [newShow, setNewShow] = useState({ name: "", platform: "youtube", handle: "", rssUrl: "" });
@@ -61,6 +63,21 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
     } catch (err: any) {
       setProfilesResult({ error: err.message });
       setProfilesStatus("error");
+    }
+  }
+
+  async function handleComputeLifecycle() {
+    setLifecycleStatus("running");
+    setLifecycleResult(null);
+    try {
+      const res = await fetch("/api/admin/compute-topic-lifecycle", { method: "POST" });
+      const data = await res.json();
+      setLifecycleResult(data);
+      setLifecycleStatus(res.ok && data.ok ? "done" : "error");
+      router.refresh();
+    } catch (err: any) {
+      setLifecycleResult({ error: err.message });
+      setLifecycleStatus("error");
     }
   }
 
@@ -160,6 +177,13 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
             {profilesStatus === "running" ? "Computing…" : "Compute guest profiles"}
           </button>
           <button
+            onClick={handleComputeLifecycle}
+            disabled={lifecycleStatus === "running"}
+            className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#22d3ee] to-[#3b82f6] disabled:opacity-60 shrink-0"
+          >
+            {lifecycleStatus === "running" ? "Computing…" : "Compute topic lifecycle"}
+          </button>
+          <button
             onClick={handleRunPipeline}
             disabled={runStatus === "running"}
             className="px-5 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#22d3ee] to-[#7c3aed] disabled:opacity-60 shrink-0"
@@ -181,6 +205,14 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
         <div className={`card p-5 fade-slide-in ${profilesStatus === "error" ? "border-rose-500/40" : ""}`}>
           <pre className="text-xs text-[var(--text-dim)] whitespace-pre-wrap overflow-x-auto max-h-80">
             {JSON.stringify(profilesResult, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {lifecycleResult && (
+        <div className={`card p-5 fade-slide-in ${lifecycleStatus === "error" ? "border-rose-500/40" : ""}`}>
+          <pre className="text-xs text-[var(--text-dim)] whitespace-pre-wrap overflow-x-auto max-h-80">
+            {JSON.stringify(lifecycleResult, null, 2)}
           </pre>
         </div>
       )}

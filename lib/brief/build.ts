@@ -1,9 +1,11 @@
 import { db } from "../db";
-import { aiSuggestions, episodeEntities, episodes, guestProfiles, shows, weeklyBriefs } from "../db/schema";
+import { aiSuggestions, episodeEntities, episodes, guestProfiles, shows, topicLifecycle, weeklyBriefs } from "../db/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { getTopTopics } from "../stats/topic-performance";
 import { getGlobalProvenDraws, type GlobalProvenDraw } from "../stats/proven-draws";
 import { verdictCopy, type Verdict } from "../guests/burn-score";
+import { lifecycleCopy, type Classification } from "../topics/lifecycle";
+import type { CounterAngle } from "../gemini/counter-angles";
 
 export type EvidenceItem = {
   showId: number;
@@ -33,6 +35,25 @@ export type GuestProfileSummary = {
   nextWindowDate: string | null;
   repeatedStories: { story: string; episodeIds: number[] }[];
   freshMaterial: { point: string; episodeId: number }[];
+};
+
+export type TopicLifecycleSummary = {
+  classification: Classification;
+  copy: string;
+  spreadB1: number;
+  spreadB2: number;
+  spreadB3: number;
+  avgRatioB1: number | null;
+  avgRatioB2: number | null;
+  avgRatioB3: number | null;
+  spreadTrend: number;
+  performanceTrend: number | null;
+  counterAngles: CounterAngle[];
+};
+
+export type TopicLead = FlaggedEntity & {
+  // Null until computeTopicLifecycles() has run for this topic (admin-triggered, not on the Monday cron path).
+  lifecycle: TopicLifecycleSummary | null;
 };
 
 export type GuestLead = FlaggedEntity & {
@@ -82,7 +103,7 @@ export type BriefPayload = {
     // stays visible even though it's no longer the headline metric.
     repeatAppearanceCount: number;
   };
-  trendingTopics: FlaggedEntity[];
+  trendingTopics: TopicLead[];
   sponsorSignals: {
     tier1: FlaggedSponsor[];
     tier2: FlaggedSponsor[];
@@ -240,9 +261,33 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       excerpt: row.excerpt,
     });
   }
-  const trendingTopics: FlaggedEntity[] = Array.from(topicGroups.values())
-    .filter((g) => g.showIds.size >= 2)
-    .map((g) => ({ value: g.value, showCount: g.showIds.size, evidence: g.evidence }))
+  // Read-only join: topic_lifecycle rows are computed by a separate admin-triggered
+  // endpoint (lib/topics/lifecycle.ts), never by this function — keeps the Monday
+  // cron path free of AI calls (counter-angle generation for Peaking topics).
+  const lifecycleRows = await db.select().from(topicLifecycle);
+  const lifecycleByTopic = new Map(lifecycleRows.map((r) => [r.normalizedTopic, r]));
+
+  const trendingTopics: TopicLead[] = Array.from(topicGroups.entries())
+    .filter(([, g]) => g.showIds.size >= 2)
+    .map(([key, g]) => {
+      const r = lifecycleByTopic.get(key);
+      const lifecycle: TopicLifecycleSummary | null = r
+        ? {
+            classification: r.classification as Classification,
+            copy: lifecycleCopy(r.classification as Classification),
+            spreadB1: r.spreadB1,
+            spreadB2: r.spreadB2,
+            spreadB3: r.spreadB3,
+            avgRatioB1: r.avgRatioB1,
+            avgRatioB2: r.avgRatioB2,
+            avgRatioB3: r.avgRatioB3,
+            spreadTrend: r.spreadTrend,
+            performanceTrend: r.performanceTrend,
+            counterAngles: r.counterAngles as CounterAngle[],
+          }
+        : null;
+      return { value: g.value, showCount: g.showIds.size, evidence: g.evidence, lifecycle };
+    })
     .sort((a, b) => b.showCount - a.showCount);
 
   // --- Sponsors: trailing 6 months ---

@@ -129,3 +129,24 @@ export const guestProfiles = pgTable("guest_profiles", {
   inputHash: text("input_hash").notNull(), // hash of sorted episode ids feeding this profile; skip recompute when unchanged
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const topicLifecycle = pgTable("topic_lifecycle", {
+  id: serial("id").primaryKey(),
+  normalizedTopic: text("normalized_topic").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  // insufficient_data | emerging | peaking | evergreen | fading | mixed (rules are exhaustive
+  // over the first five per spec; mixed is the deterministic catch-all for anything that
+  // matches none of them, so the UI always has something defensible to render).
+  classification: varchar("classification", { length: 20 }).notNull(),
+  spreadB1: integer("spread_b1").notNull(), // distinct shows, oldest 30-day bucket of the trailing 90 days
+  spreadB2: integer("spread_b2").notNull(),
+  spreadB3: integer("spread_b3").notNull(), // newest 30-day bucket
+  avgRatioB1: real("avg_ratio_b1"), // null when no episode in that bucket carries a viewRatio
+  avgRatioB2: real("avg_ratio_b2"),
+  avgRatioB3: real("avg_ratio_b3"),
+  spreadTrend: integer("spread_trend").notNull(), // spread(B3) - spread(B1)
+  performanceTrend: real("performance_trend"), // avgRatio(B3) - avgRatio(B1); null if either side has no ratio data
+  counterAngles: jsonb("counter_angles").notNull().default([]), // { angle, rationale }[], only populated for Peaking
+  inputHash: text("input_hash").notNull(), // hash of sorted episode ids in the trailing-90-day window; gates the counter-angle AI call
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+});

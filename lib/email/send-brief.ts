@@ -30,8 +30,18 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
       `<strong style="color:#a855f7;">${g.value}</strong> — ${g.showCount} shows${g.overexposed ? " · overexposed" : ""}${verdictTag(g)}`
   );
 
+  const lifecycleLabel: Record<string, string> = {
+    insufficient_data: "Insufficient data",
+    emerging: "Emerging",
+    peaking: "Peaking",
+    evergreen: "Evergreen",
+    fading: "Fading",
+    mixed: "Mixed signal",
+  };
+  const lifecycleTag = (t: BriefPayload["trendingTopics"][number]) =>
+    t.lifecycle ? ` · <span style="color:#22d3ee;">${lifecycleLabel[t.lifecycle.classification]}</span>` : "";
   const topicItems = payload.trendingTopics.map(
-    (t) => `<strong style="color:#22d3ee;">${t.value}</strong> — ${t.showCount} shows`
+    (t) => `<strong style="color:#22d3ee;">${t.value}</strong> — ${t.showCount} shows${lifecycleTag(t)}`
   );
 
   const sponsorCount = payload.sponsorSignals.tier1.length + payload.sponsorSignals.tier2.length;

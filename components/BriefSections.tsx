@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { BriefPayload, EvidenceItem, GuestProfileSummary } from "@/lib/brief/build";
+import type { BriefPayload, EvidenceItem, GuestProfileSummary, TopicLifecycleSummary } from "@/lib/brief/build";
 import EvidenceList from "./EvidenceList";
 import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
+import TopicSparkline from "./charts/TopicSparkline";
 
 const VERDICT_STYLE: Record<GuestProfileSummary["verdict"], { label: string; color: string }> = {
   oversaturated: { label: "Oversaturated", color: "#f43f5e" },
@@ -22,6 +23,72 @@ function VerdictChip({ profile }: { profile: GuestProfileSummary }) {
     >
       {label}
     </span>
+  );
+}
+
+const CLASSIFICATION_STYLE: Record<TopicLifecycleSummary["classification"], { label: string; color: string }> = {
+  insufficient_data: { label: "Insufficient data", color: "#94a3b8" },
+  emerging: { label: "Emerging", color: "#22c55e" },
+  peaking: { label: "Peaking", color: "#f59e0b" },
+  evergreen: { label: "Evergreen", color: "#3b82f6" },
+  fading: { label: "Fading", color: "#f43f5e" },
+  mixed: { label: "Mixed signal", color: "#94a3b8" },
+};
+
+function LifecycleChip({ lifecycle }: { lifecycle: TopicLifecycleSummary }) {
+  const { label, color } = CLASSIFICATION_STYLE[lifecycle.classification];
+  return (
+    <span
+      className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
+      style={{ background: `${color}22`, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function TopicLifecycleDetail({ lifecycle }: { lifecycle: TopicLifecycleSummary }) {
+  const { color } = CLASSIFICATION_STYLE[lifecycle.classification];
+  return (
+    <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs" style={{ color }}>
+          {lifecycle.copy}
+        </p>
+        <TopicSparkline
+          avgRatioB1={lifecycle.avgRatioB1}
+          avgRatioB2={lifecycle.avgRatioB2}
+          avgRatioB3={lifecycle.avgRatioB3}
+          color={color}
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { label: "Shows 61-90d", value: lifecycle.spreadB1 },
+          { label: "Shows 31-60d", value: lifecycle.spreadB2 },
+          { label: "Shows 0-30d", value: lifecycle.spreadB3 },
+        ].map((s) => (
+          <div key={s.label} className="rounded-lg bg-white/5 py-2 px-1">
+            <div className="text-sm font-semibold text-white">{s.value}</div>
+            <div className="text-[10px] text-[var(--text-dim)]">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      {lifecycle.classification === "peaking" && lifecycle.counterAngles.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+          <div className="text-[10px] font-semibold text-amber-400 mb-2">
+            AI suggestion — counter-programming angles, unverified
+          </div>
+          <ul className="space-y-2">
+            {lifecycle.counterAngles.map((a, i) => (
+              <li key={i} className="text-xs text-[var(--text-dim)]">
+                <span className="text-white font-medium">{a.angle}</span> — {a.rationale}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -73,6 +140,7 @@ function ExpandableCard({
   extra,
   footer,
   profile,
+  lifecycle,
 }: {
   title: string;
   badge: string;
@@ -81,6 +149,7 @@ function ExpandableCard({
   extra?: React.ReactNode;
   footer?: React.ReactNode;
   profile?: GuestProfileSummary | null;
+  lifecycle?: TopicLifecycleSummary | null;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -89,6 +158,7 @@ function ExpandableCard({
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-semibold text-white truncate">{title}</span>
           {profile && <VerdictChip profile={profile} />}
+          {lifecycle && <LifecycleChip lifecycle={lifecycle} />}
           {extra}
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -109,6 +179,7 @@ function ExpandableCard({
         </div>
       </button>
       {open && profile && <GuestProfileDetail profile={profile} />}
+      {open && lifecycle && <TopicLifecycleDetail lifecycle={lifecycle} />}
       {open && <EvidenceList evidence={evidence} />}
       {footer}
     </div>
@@ -194,6 +265,7 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               badge={`${t.showCount} shows`}
               badgeColor="#22d3ee"
               evidence={t.evidence}
+              lifecycle={t.lifecycle}
             />
           ))}
         </div>
