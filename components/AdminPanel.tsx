@@ -172,15 +172,15 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
 
   return (
     <div className="space-y-8">
-      <div className="card p-6 flex items-center justify-between fade-slide-in">
-        <div>
+      <div className="card p-6 flex flex-wrap items-center justify-between gap-4 fade-slide-in">
+        <div className="min-w-0">
           <h2 className="font-semibold text-white mb-1">Pipeline control</h2>
-          <p className="text-xs text-[var(--text-dim)]">
+          <p className="text-xs text-[var(--text-dim)] max-w-md">
             Fetches new episodes for all active shows, extracts entities with Gemini, builds the weekly brief, and emails it.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleLogout} className="text-sm text-[var(--text-dim)] hover:text-white">
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={handleLogout} className="text-sm text-[var(--text-dim)] hover:text-white whitespace-nowrap shrink-0">
             Log out
           </button>
           <button
