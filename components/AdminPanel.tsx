@@ -12,6 +12,7 @@ type Show = {
   youtubeHandle: string | null;
   rssUrl: string | null;
   active: boolean;
+  isOwnShow: boolean;
   lastFetchedAt: string | Date | null;
   createdAt: string | Date;
 };
@@ -90,6 +91,19 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
     if (res.ok) {
       const data = await res.json();
       setShows((prev) => prev.map((s) => (s.id === show.id ? data.show : s)));
+    }
+  }
+
+  async function setOwnShow(show: Show) {
+    const res = await fetch(`/api/admin/shows/${show.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isOwnShow: !show.isOwnShow }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // Server unsets is_own_show on every other show — mirror that locally rather than refetching.
+      setShows((prev) => prev.map((s) => (s.id === show.id ? data.show : { ...s, isOwnShow: data.show.isOwnShow ? false : s.isOwnShow })));
     }
   }
 
@@ -288,6 +302,11 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
+                {show.isOwnShow && (
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-pink-500/15 text-pink-300">
+                    Own show
+                  </span>
+                )}
                 <span
                   className={`text-xs font-semibold px-2 py-1 rounded-full ${
                     show.active ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-500/15 text-slate-400"
@@ -297,6 +316,9 @@ export default function AdminPanel({ initialShows }: { initialShows: Show[] }) {
                 </span>
                 <button onClick={() => toggleActive(show)} className="text-xs text-[var(--text-dim)] hover:text-white underline">
                   {show.active ? "Deactivate" : "Activate"}
+                </button>
+                <button onClick={() => setOwnShow(show)} className="text-xs text-[var(--text-dim)] hover:text-white underline">
+                  {show.isOwnShow ? "Unset own show" : "Set as own show"}
                 </button>
                 <button onClick={() => deleteShow(show.id)} className="text-xs text-rose-400 hover:text-rose-300 underline">
                   Remove

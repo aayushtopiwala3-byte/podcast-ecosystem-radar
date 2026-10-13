@@ -17,9 +17,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body.youtubeHandle === "string" || body.youtubeHandle === null)
     updates.youtubeHandle = body.youtubeHandle;
   if (typeof body.rssUrl === "string" || body.rssUrl === null) updates.rssUrl = body.rssUrl;
+  if (typeof body.isOwnShow === "boolean") updates.isOwnShow = body.isOwnShow;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
+  // Exactly one show may carry is_own_show (spec 4.1) — unset it on every other show first.
+  if (updates.isOwnShow === true) {
+    await db.update(shows).set({ isOwnShow: false }).where(eq(shows.isOwnShow, true));
   }
 
   const [row] = await db.update(shows).set(updates).where(eq(shows.id, Number(id))).returning();

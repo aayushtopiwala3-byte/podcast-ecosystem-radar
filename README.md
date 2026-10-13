@@ -35,6 +35,16 @@ Every AI call in this codebase goes through [`lib/ai/gemini-flash.ts`](lib/ai/ge
 
 The resolved model id is recorded on every pipeline run (`pipeline_runs.details.model`) and surfaced in the Source Health UI (`/sources`) so the model actually used is independently verifiable, not just asserted in code.
 
+Guest burn-score profiles and topic lifecycle classifications are cached in their own tables (`guest_profiles`, `topic_lifecycle`), each keyed by a content hash of the episode ids feeding the profile (`input_hash`). Recompute is skipped whenever the hash is unchanged, so the daily cron doesn't re-spend on AI calls for data it already analyzed.
+
+An optional `AI_COST_CEILING_USD` env var caps spend on `/api/cron/daily-watch`: ingestion always runs, but the two AI-driven analysis stages (guest profiles, topic lifecycles) are skipped once cumulative cost for the run crosses the ceiling, and the triggering pipeline run is marked `partial` in `pipeline_runs`. Leave it unset to run without a ceiling.
+
+## Daily Watch & Own Show Gaps
+
+`/api/cron/daily-watch` runs incremental ingestion (shows not fetched in the last 24h) plus the cached AI analyses, then checks for newsworthy state changes — a guest newly hitting "Book now", a topic newly flipping to "Emerging", a brand newly becoming a "New entrant". A dedup record is written to `alerts_sent` per `(kind, subject)` so the same trip doesn't re-fire within 14 days; an alert email only sends when something new tripped.
+
+Flagging a show `is_own_show` in Admin (exactly one at a time) turns on the "Own Show Gaps" section of the weekly brief — topics/guests/sponsors the rest of the monitored ecosystem has and the flagged show doesn't, plus topics the flagged show covered before anyone else did. With no show flagged, the section renders an explicit "not configured" empty state rather than guessing.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.

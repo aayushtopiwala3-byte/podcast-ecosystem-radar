@@ -7,6 +7,7 @@ import { verdictCopy, type Verdict } from "../guests/burn-score";
 import { lifecycleCopy, type Classification } from "../topics/lifecycle";
 import type { CounterAngle } from "../gemini/counter-angles";
 import { computeMoneyMap, type MoneyMap } from "../stats/money-map";
+import { computeOwnShowGaps, type OwnShowGaps } from "../stats/own-show-gaps";
 
 export type EvidenceItem = {
   showId: number;
@@ -112,6 +113,7 @@ export type BriefPayload = {
     tier3: SuggestedSponsor[];
   };
   moneyMap: MoneyMap;
+  ownShowGaps: OwnShowGaps;
 };
 
 function startOfWeek(d: Date): Date {
@@ -400,6 +402,9 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
   // --- Money map: brand state machine + reach comparison (spec 3.1/3.2) ---
   const moneyMap = await computeMoneyMap();
 
+  // --- Own-show gap analysis: pure comparison against the configured baseline show (spec 4.1) ---
+  const ownShowGaps = await computeOwnShowGaps();
+
   return {
     weekStartDate: weekStart.toISOString().slice(0, 10),
     generatedAt: now.toISOString(),
@@ -417,6 +422,7 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       tier3,
     },
     moneyMap,
+    ownShowGaps,
   };
 }
 

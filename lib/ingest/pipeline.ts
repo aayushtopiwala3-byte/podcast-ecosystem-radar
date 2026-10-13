@@ -28,7 +28,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 type AiUsageTotals = { calls: number; totalTokens: number; costUsd: number };
 
-export async function runPipeline(): Promise<{
+export async function runPipeline(options: { onlyStaleHours?: number } = {}): Promise<{
   runId: number;
   status: "success" | "partial" | "failed";
   outcomes: ShowOutcome[];
@@ -39,18 +39,22 @@ export async function runPipeline(): Promise<{
     .values({ status: "running", details: {} })
     .returning();
 
-  const activeShows = await db.select().from(shows).where(eq(shows.active, true));
+  let activeShows = await db.select().from(shows).where(eq(shows.active, true));
+
+  // Daily-watch (spec 4.2) only re-fetches shows not already fetched in the last N hours —
+  // the Monday full run (no option passed) still processes every active show unconditionally.
+  if (options.onlyStaleHours != null) {
+    const cutoff = Date.now() - options.onlyStaleHours * 60 * 60 * 1000;
+    activeShows = activeShows.filter((s) => !s.lastFetchedAt || new Date(s.lastFetchedAt).getTime() < cutoff);
+  }
 
   const aiUsages: ChatUsage[] = [];
   const outcomes = await mapLimit(activeShows, SHOW_CONCURRENCY, (show) => processShow(show, aiUsages));
 
   const anySuccess = outcomes.some((o) => o.status === "success" || o.status === "no_new_episodes");
   const anyFailed = outcomes.some((o) => o.status === "failed");
-  const overallStatus: "success" | "partial" | "failed" = !anySuccess
-    ? "failed"
-    : anyFailed
-    ? "partial"
-    : "success";
+  const overallStatus: "success" | "partial" | "failed" =
+    outcomes.length === 0 ? "success" : !anySuccess ? "failed" : anyFailed ? "partial" : "success";
 
   const aiUsage: AiUsageTotals = {
     calls: aiUsages.length,

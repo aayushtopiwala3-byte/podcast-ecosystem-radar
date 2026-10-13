@@ -258,6 +258,16 @@ function ExpandableCard({
 export default function BriefSections({ payload }: { payload: BriefPayload }) {
   const urgentLeads = payload.guestLeads.filter((g) => g.urgent);
   const validatedLeads = payload.guestLeads.filter((g) => !g.urgent);
+  // Brief rows cached before this field existed won't have it — fall back to the unconfigured state.
+  const ownShowGaps = payload.ownShowGaps ?? {
+    configured: false,
+    ownShowId: null,
+    ownShowName: null,
+    topicGaps: [],
+    guestGaps: [],
+    sponsorGaps: [],
+    whereAhead: [],
+  };
 
   return (
     <div className="space-y-10">
@@ -528,6 +538,110 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
               ))}
             </div>
           </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeader
+          title="Own Show Gaps"
+          subtitle={
+            ownShowGaps.configured
+              ? `Comparing ${ownShowGaps.ownShowName} against the ecosystem`
+              : "Compare your show against the ecosystem"
+          }
+          color="#8b5cf6"
+        />
+
+        {!ownShowGaps.configured && <EmptyState text="Own show not configured — set it in Admin." />}
+
+        {ownShowGaps.configured && (
+          <>
+            <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">
+              Topic gaps — covered by 3+ shows in 90 days, not by you
+            </h4>
+            <div className="space-y-3">
+              {ownShowGaps.topicGaps.length === 0 && (
+                <EmptyState text="No topic gaps — you're covering what the ecosystem covers." />
+              )}
+              {ownShowGaps.topicGaps.map((g) => (
+                <ExpandableCard
+                  key={g.value}
+                  title={g.value}
+                  badge={`${g.ecosystemShowCount} shows`}
+                  badgeColor="#8b5cf6"
+                  evidence={g.evidence}
+                />
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">
+                Guest gaps — on 2+ shows in 6 months, never on yours
+              </h4>
+              <div className="space-y-3">
+                {ownShowGaps.guestGaps.length === 0 && <EmptyState text="No guest gaps." />}
+                {ownShowGaps.guestGaps.map((g) => (
+                  <ExpandableCard
+                    key={g.value}
+                    title={g.value}
+                    badge={`${g.ecosystemShowCount} shows`}
+                    badgeColor="#8b5cf6"
+                    evidence={g.evidence}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">
+                Sponsor gaps — ad-reads on 2+ shows in 6 months, none on yours
+              </h4>
+              <div className="space-y-3">
+                {ownShowGaps.sponsorGaps.length === 0 && <EmptyState text="No sponsor gaps." />}
+                {ownShowGaps.sponsorGaps.map((g) => (
+                  <ExpandableCard
+                    key={g.value}
+                    title={g.value}
+                    badge={`${g.ecosystemShowCount} shows`}
+                    badgeColor="#8b5cf6"
+                    evidence={g.evidence}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">
+                Where you&apos;re ahead — topics you covered before the ecosystem
+              </h4>
+              <div className="space-y-2">
+                {ownShowGaps.whereAhead.length === 0 && (
+                  <EmptyState text="No topics where you're ahead yet." />
+                )}
+                {ownShowGaps.whereAhead.map((a, i) => (
+                  <div key={i} className="card p-3.5 fade-slide-in">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-white truncate">{a.value}</span>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-400 shrink-0">
+                        {a.daysAhead}d ahead
+                      </span>
+                    </div>
+                    <a
+                      href={a.ownEvidence.episodeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[var(--text-dim)] hover:underline truncate block mt-1"
+                    >
+                      {a.ownEvidence.episodeTitle} · {fmtDate(a.ownFirstSeenAt)}
+                    </a>
+                    <div className="text-xs text-[var(--text-dim)] mt-0.5">
+                      Ecosystem first covered it {fmtDate(a.ecosystemFirstSeenAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </section>
     </div>

@@ -21,6 +21,9 @@ export const shows = pgTable("shows", {
   youtubeHandle: text("youtube_handle"),
   rssUrl: text("rss_url"),
   active: boolean("active").notNull().default(true),
+  // Exactly one show may carry this (enforced in the PATCH route, not the schema) — the
+  // comparison baseline for own-show gap analysis (spec 4.1). Never inferred, always explicit.
+  isOwnShow: boolean("is_own_show").notNull().default(false),
   lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -142,6 +145,14 @@ export const sponsorPitches = pgTable("sponsor_pitches", {
   status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | sent
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
+export const alertsSent = pgTable("alerts_sent", {
+  id: serial("id").primaryKey(),
+  kind: varchar("kind", { length: 30 }).notNull(), // guest_book_now | brand_new_entrant | topic_emerging
+  subjectKey: text("subject_key").notNull(), // normalized guest/brand/topic value that tripped
+  trippedAt: timestamp("tripped_at", { withTimezone: true }).notNull().defaultNow(),
+  briefWindow: text("brief_window").notNull(), // ISO date of the daily-watch run that fired this alert
 });
 
 export const topicLifecycle = pgTable("topic_lifecycle", {
