@@ -6,6 +6,7 @@ import { getGlobalProvenDraws, type GlobalProvenDraw } from "../stats/proven-dra
 import { verdictCopy, type Verdict } from "../guests/burn-score";
 import { lifecycleCopy, type Classification } from "../topics/lifecycle";
 import type { CounterAngle } from "../gemini/counter-angles";
+import { computeMoneyMap, type MoneyMap } from "../stats/money-map";
 
 export type EvidenceItem = {
   showId: number;
@@ -110,6 +111,7 @@ export type BriefPayload = {
     singleShowAdReads: WatchlistSponsor[];
     tier3: SuggestedSponsor[];
   };
+  moneyMap: MoneyMap;
 };
 
 function startOfWeek(d: Date): Date {
@@ -395,6 +397,9 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       }))
     );
 
+  // --- Money map: brand state machine + reach comparison (spec 3.1/3.2) ---
+  const moneyMap = await computeMoneyMap();
+
   return {
     weekStartDate: weekStart.toISOString().slice(0, 10),
     generatedAt: now.toISOString(),
@@ -411,6 +416,7 @@ export async function buildWeeklyBrief(): Promise<BriefPayload> {
       singleShowAdReads,
       tier3,
     },
+    moneyMap,
   };
 }
 

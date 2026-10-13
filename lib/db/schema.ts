@@ -130,6 +130,20 @@ export const guestProfiles = pgTable("guest_profiles", {
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const sponsorPitches = pgTable("sponsor_pitches", {
+  id: serial("id").primaryKey(),
+  brand: text("brand").notNull(),
+  state: varchar("state", { length: 20 }).notNull(), // new_entrant | scaling | steady | churned | mention_only
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  // Structured facts assembled in code (brand, shows, episodes, dates, excerpts, reach band) —
+  // the model only writes prose around these, never invents them (spec 3.3).
+  evidence: jsonb("evidence").notNull().default([]),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft | sent
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
 export const topicLifecycle = pgTable("topic_lifecycle", {
   id: serial("id").primaryKey(),
   normalizedTopic: text("normalized_topic").notNull().unique(),

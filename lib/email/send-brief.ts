@@ -50,6 +50,27 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
     ...payload.sponsorSignals.tier2.map((s) => `<strong style="color:#ec4899;">${s.value}</strong> — Tier 2, organic`),
   ];
 
+  const stateLabel: Record<string, string> = {
+    new_entrant: "New entrant",
+    scaling: "Scaling",
+    steady: "Steady",
+    churned: "Churned",
+  };
+  const moneyMapCount =
+    payload.moneyMap.newEntrants.length +
+    payload.moneyMap.scaling.length +
+    payload.moneyMap.churned.length +
+    payload.moneyMap.steady.length;
+  const moneyMapItems = [
+    ...payload.moneyMap.newEntrants,
+    ...payload.moneyMap.scaling,
+    ...payload.moneyMap.churned,
+    ...payload.moneyMap.steady,
+  ].map(
+    (b) =>
+      `<strong style="color:#ec4899;">${b.value}</strong> — ${stateLabel[b.state]}${b.underReachBuyer ? " · under-reach buyer" : ""}`
+  );
+
   return `
   <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width:640px; margin:0 auto; color:#0f172a;">
     <h1 style="font-size:22px;">Your Monday Podcast Radar — ${fmtDate(payload.generatedAt)}</h1>
@@ -68,6 +89,12 @@ export function buildBriefEmailHtml(payload: BriefPayload, dashboardUrl: string)
 
     <h2 style="color:#3b82f6; border-bottom:2px solid #22d3ee; padding-bottom:6px;">Trending Topics (${payload.trendingTopics.length})</h2>
     ${summaryList(topicItems, "No topics covered by 2+ shows in the last 6 months.")}
+
+    <h2 style="color:#be185d; border-bottom:2px solid #ec4899; padding-bottom:6px;">Money Map (${moneyMapCount})</h2>
+    <p style="color:#64748b; font-size:13px;">
+      Brands whose ad-read spend changed in the last 30 days vs. the prior 60. YouTube views and monthly podcast listeners are different units — "under-reach buyer" is a directional signal only, not a precise comparison.
+    </p>
+    ${summaryList(moneyMapItems, "No brand ad-read state changes in the last 90 days yet.")}
 
     <h2 style="color:#d946ef; border-bottom:2px solid #ec4899; padding-bottom:6px;">Sponsor Signals (${sponsorCount})</h2>
     ${summaryList(sponsorItems, "No qualifying sponsor signals in the last 6 months.")}

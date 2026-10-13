@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import type { BriefPayload, EvidenceItem, GuestProfileSummary, TopicLifecycleSummary } from "@/lib/brief/build";
+import type { BrandState, MoneyMapBrand, MentionOnlyBrand, ShowReachInfo } from "@/lib/stats/money-map";
 import EvidenceList from "./EvidenceList";
 import { fmtDate } from "@/lib/format";
 import InviteComposer from "./InviteComposer";
+import SponsorPitchComposer from "./SponsorPitchComposer";
 import TopicSparkline from "./charts/TopicSparkline";
 
 const VERDICT_STYLE: Record<GuestProfileSummary["verdict"], { label: string; color: string }> = {
@@ -89,6 +91,73 @@ function TopicLifecycleDetail({ lifecycle }: { lifecycle: TopicLifecycleSummary 
         </div>
       )}
     </div>
+  );
+}
+
+const BRAND_STATE_STYLE: Record<BrandState, { label: string; color: string; note: string }> = {
+  new_entrant: { label: "New entrant", color: "#22c55e", note: "Highest priority — budget just opened" },
+  scaling: { label: "Scaling", color: "#3b82f6", note: "Actively expanding" },
+  steady: { label: "Steady", color: "#94a3b8", note: "Flat, ongoing spend" },
+  churned: { label: "Churned", color: "#f59e0b", note: "Budget ended or between flights — worth a timed pitch" },
+};
+
+// Mirrors lib/stats/money-map.ts's ADITYA_MONTHLY_LISTENERS — duplicated here (not imported)
+// so a client component never pulls in the server-only db module that file depends on.
+const ADITYA_MONTHLY_LISTENERS_DISPLAY = 9000;
+
+function ReachBreakdown({ reach }: { reach: ShowReachInfo[] }) {
+  if (reach.length === 0) return null;
+  return (
+    <div className="text-xs text-[var(--text-dim)]">
+      <div className="mb-1">
+        Reach — trailing 90-day median YouTube views per show. Not directly comparable to monthly podcast
+        listeners; treat as directional only.
+      </div>
+      <ul className="space-y-0.5">
+        {reach.map((r) => (
+          <li key={r.showId}>
+            {r.showName}:{" "}
+            {r.medianViewCount != null ? (
+              <span className={r.medianViewCount < ADITYA_MONTHLY_LISTENERS_DISPLAY ? "text-amber-400" : "text-white"}>
+                {r.medianViewCount.toLocaleString()} median views
+              </span>
+            ) : (
+              <span className="text-slate-500">reach unknown</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MoneyMapBrandCard({ brand }: { brand: MoneyMapBrand }) {
+  const { label, color, note } = BRAND_STATE_STYLE[brand.state];
+  return (
+    <ExpandableCard
+      title={brand.value}
+      badge={label}
+      badgeColor={color}
+      evidence={brand.evidence}
+      extra={
+        <span className="flex gap-1 shrink-0">
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: `${color}22`, color }}>
+            {note}
+          </span>
+          {brand.underReachBuyer && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">
+              Under-reach buyer
+            </span>
+          )}
+        </span>
+      }
+      footer={
+        <div className="mt-3 border-t border-[var(--border)] pt-3 space-y-2">
+          <ReachBreakdown reach={brand.reach} />
+          <SponsorPitchComposer brand={brand.value} />
+        </div>
+      }
+    />
   );
 }
 
@@ -269,6 +338,99 @@ export default function BriefSections({ payload }: { payload: BriefPayload }) {
             />
           ))}
         </div>
+      </section>
+
+      <section>
+        <SectionHeader title="Money Map" subtitle="Brand ad-read state changes, trailing 90 days" color="#ec4899" />
+        <p className="text-xs text-[var(--text-dim)] mb-4">
+          Built from paid ad-read rows only — passing mentions are never counted as spend evidence. Reach
+          comparisons weigh each show's trailing-90-day median YouTube view count against Aditya's roughly
+          9,000 monthly listeners; these are different units and not directly comparable, so any "Under-reach
+          buyer" flag is a directional signal, not a precise claim.
+        </p>
+
+        {(() => {
+          // Brief rows cached before this field existed won't have it — fall back to empty.
+          const moneyMap = payload.moneyMap ?? {
+            newEntrants: [],
+            scaling: [],
+            steady: [],
+            churned: [],
+            mentionOnly: [],
+          };
+          return (
+            <>
+              {moneyMap.newEntrants.length === 0 &&
+                moneyMap.scaling.length === 0 &&
+                moneyMap.steady.length === 0 &&
+                moneyMap.churned.length === 0 &&
+                moneyMap.mentionOnly.length === 0 && (
+                  <EmptyState text="No brand ad-read or mention activity in the last 90 days yet." />
+                )}
+
+              {moneyMap.newEntrants.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">New entrants — highest pitch priority</h4>
+                  <div className="space-y-3">
+                    {moneyMap.newEntrants.map((b) => (
+                      <MoneyMapBrandCard key={b.value} brand={b} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moneyMap.scaling.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Scaling</h4>
+                  <div className="space-y-3">
+                    {moneyMap.scaling.map((b) => (
+                      <MoneyMapBrandCard key={b.value} brand={b} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moneyMap.churned.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Churned — worth a timed pitch</h4>
+                  <div className="space-y-3">
+                    {moneyMap.churned.map((b) => (
+                      <MoneyMapBrandCard key={b.value} brand={b} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moneyMap.steady.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Steady</h4>
+                  <div className="space-y-3">
+                    {moneyMap.steady.map((b) => (
+                      <MoneyMapBrandCard key={b.value} brand={b} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moneyMap.mentionOnly.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-[var(--text-dim)] mb-3">Discussed, no evidence of spend</h4>
+                  <div className="space-y-3">
+                    {moneyMap.mentionOnly.map((b) => (
+                      <ExpandableCard
+                        key={b.value}
+                        title={b.value}
+                        badge={`${b.showCount} shows`}
+                        badgeColor="#94a3b8"
+                        evidence={b.evidence}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </section>
 
       <section>
